@@ -31,12 +31,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import org.monogram.core.common.Country
 import org.monogram.core.common.CountryManager
@@ -65,52 +70,37 @@ fun PhoneInput(
     val defaultIso = remember(context) {
         CountryManager.resolveIso(CountryManager.simIso(context), Locale.getDefault().country)
     }
-    var pickedIso by rememberSaveable { mutableStateOf<String?>(null) }
+    var pickedKey by rememberSaveable { mutableStateOf<String?>(null) }
     var pickerVisible by rememberSaveable { mutableStateOf(false) }
 
     val digits = value.filter { it.isDigit() }
-    val picked = CountryManager.countryForIso(pickedIso)
+    val picked = CountryManager.countries().firstOrNull { it.pickerKey == pickedKey }
     val fallback = picked ?: CountryManager.countryForIso(defaultIso)
     val country = CountryManager.countryForTypedPhone(digits, fallback)
         ?: fallback
         ?: CountryManager.countries().firstOrNull()
         ?: return
 
-    val display = CountryManager.formatAsYouType(value, country)
-    val example = remember(country.iso, placeholder) {
-        CountryManager.exampleNumber(country.iso)
+    val example = remember(country.pickerKey, placeholder) {
+        CountryManager.exampleNumber(country)
             ?.removePrefix("+${country.code}")
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?: placeholder
     }
-    var caret by rememberSaveable { mutableStateOf(display.length) }
-    val field = TextFieldValue(
-        text = display,
-        selection = TextRange(caret.coerceIn(0, display.length)),
-    )
+    var editor by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
+    }
+    val field = if (editor.text == value) editor else TextFieldValue(value, TextRange(value.length))
+    val transformation = remember(country) { PhoneNumberTransformation(country) }
     val dialCodeLabel = stringResource(R.string.auth_dial_code)
     val countryLabel = stringResource(R.string.auth_country_selected, country.name)
 
     OutlinedTextField(
         value = field,
-        onValueChange = { edit ->
-            val editCaret = edit.selection.end.coerceIn(0, edit.text.length)
-            val previous = value.filter { it.isDigit() }
-            val injectedBefore = (display.count { it.isDigit() } - previous.length).coerceAtLeast(0)
-            val typed = edit.text.filter { it.isDigit() }
-            val caretDigits = (digitsBeforeCaret(edit.text, editCaret) - injectedBefore)
-                .coerceIn(0, (typed.length - injectedBefore).coerceAtLeast(0))
-            val separatorDeleted = typed == previous && edit.text.length < display.length
-            val digits = if (separatorDeleted) dropDigitBefore(previous, caretDigits) else typed
-            val nextValue = CountryManager.phoneValueForTypedDigits(digits, fallback)
-            val nextDigitIndex = if (separatorDeleted) maxOf(caretDigits - 1, 0) else caretDigits
-            onValueChange(nextValue)
-            val storedDigits = nextValue.filter { it.isDigit() }
-            val nextCountry = CountryManager.countryForTypedPhone(storedDigits, fallback) ?: country
-            val nextDisplay = CountryManager.formatAsYouType(nextValue, nextCountry)
-            val injected = (nextDisplay.count { it.isDigit() } - storedDigits.length).coerceAtLeast(0)
-            caret = caretAfterDigit(nextDisplay, injected + nextDigitIndex)
+        onValueChange = { input ->
+            editor = normalizePhoneEdit(field, input, country)
+            if (editor.text != value) onValueChange(editor.text)
         },
         modifier = modifier
             .fillMaxWidth()
@@ -125,7 +115,7 @@ fun PhoneInput(
         label = { Text(label) },
         placeholder = { Text(example) },
         prefix = {
-            if (display.isBlank()) {
+            if (value.isEmpty()) {
                 Text(
                     text = "+${country.code}",
                     modifier = Modifier.semantics { contentDescription = dialCodeLabel },
@@ -138,7 +128,7 @@ fun PhoneInput(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .testTag(PhoneInputTags.COUNTRY)
-                    .clickable(enabled = enabled) { pickerVisible = true }
+                    .clickable(enabled = enabled, role = Role.Button) { pickerVisible = true }
                     .semantics { contentDescription = countryLabel }
                     .padding(horizontal = 4.dp),
             )
@@ -150,19 +140,29 @@ fun PhoneInput(
             keyboardType = KeyboardType.Phone,
             imeAction = imeAction,
         ),
-        keyboardActions = KeyboardActions(onDone = { onImeAction() }),
+        keyboardActions = KeyboardActions(
+            onDone = { onImeAction() },
+            onNext = { onImeAction() },
+            onPrevious = { onImeAction() },
+            onGo = { onImeAction() },
+            onSearch = { onImeAction() },
+            onSend = { onImeAction() },
+        ),
+        visualTransformation = transformation,
         enabled = enabled,
     )
 
-    if (pickerVisible) {
+    if (pickerVisible && enabled) {
         CountryPicker(
-            selectedIso = country.iso,
+            selectedKey = country.pickerKey,
             onDismiss = { pickerVisible = false },
             onSelect = { target ->
-                pickedIso = target.iso
+                pickedKey = target.pickerKey
                 pickerVisible = false
-                onValueChange("+${target.code}")
-                caret = Int.MAX_VALUE
+                val national = digits.takeIf { it.startsWith(country.code) }?.removePrefix(country.code).orEmpty()
+                val nextValue = "+${target.code}$national"
+                editor = TextFieldValue(nextValue, TextRange(nextValue.length))
+                onValueChange(nextValue)
             },
         )
     }
@@ -170,7 +170,7 @@ fun PhoneInput(
 
 @Composable
 private fun CountryPicker(
-    selectedIso: String,
+    selectedKey: String,
     onDismiss: () -> Unit,
     onSelect: (Country) -> Unit,
 ) {
@@ -223,7 +223,7 @@ private fun CountryPicker(
                             Text(
                                 text = item.name,
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (item.iso == selectedIso) {
+                                fontWeight = if (item.pickerKey == selectedKey) {
                                     FontWeight.SemiBold
                                 } else {
                                     FontWeight.Normal
@@ -248,24 +248,74 @@ private fun CountryPicker(
     )
 }
 
-internal fun digitsBeforeCaret(text: String, caret: Int): Int {
-    val clamped = caret.coerceIn(0, text.length)
-    return text.take(clamped).count { it.isDigit() }
-}
-
-internal fun caretAfterDigit(formatted: String, digitIndex: Int): Int {
-    if (formatted.isEmpty() || digitIndex <= 0) return 0
-    var seen = 0
-    formatted.forEachIndexed { index, char ->
-        if (char.isDigit()) {
-            seen += 1
-            if (seen == digitIndex) return index + 1
-        }
+internal fun insertDefaultDialCode(
+    edit: TextFieldValue,
+    previousValue: String,
+    country: Country,
+): TextFieldValue {
+    if (previousValue.any { it.isDigit() } ||
+        edit.text.none { it.isDigit() } ||
+        edit.text.trimStart().startsWith("+")
+    ) {
+        return edit
     }
-    return formatted.length
+
+    val digits = edit.text.filter(Char::isDigit)
+    val internationalCountry = CountryManager.countryForPhone(digits)
+    if (internationalCountry != null &&
+        CountryManager.isValidPhoneNumber("+$digits", internationalCountry.iso) &&
+        (digits.startsWith(country.code) || !CountryManager.isValidPhoneNumber("+${country.code}$digits", country.iso))
+    ) {
+        return edit
+    }
+
+    val prefix = "+${country.code}"
+    return edit.copy(
+        text = prefix + edit.text,
+        selection = TextRange(edit.selection.start + prefix.length, edit.selection.end + prefix.length),
+        composition = edit.composition?.let {
+            TextRange(it.start + prefix.length, it.end + prefix.length)
+        },
+    )
 }
 
-internal fun dropDigitBefore(digits: String, digitIndex: Int): String {
-    if (digitIndex <= 0 || digitIndex > digits.length) return digits
-    return digits.removeRange(digitIndex - 1, digitIndex)
+internal fun normalizePhoneEdit(previous: TextFieldValue, input: TextFieldValue, country: Country): TextFieldValue {
+    if (input.text == previous.text) return input
+    val replacingAll = previous.selection.min == 0 && previous.selection.max == previous.text.length
+    val edit = insertDefaultDialCode(input, if (replacingAll) "" else previous.text, country)
+    val digits = edit.text.filter(Char::isDigit)
+    val hasPlus = edit.text.trimStart().startsWith("+")
+    val text = if (digits.isNotEmpty() || hasPlus) "+$digits" else ""
+    fun offset(index: Int): Int = when {
+        index == 0 -> 0
+        else -> (1 + edit.text.take(index).count(Char::isDigit)).coerceAtMost(text.length)
+    }
+    fun range(range: TextRange) = TextRange(offset(range.start), offset(range.end))
+    return TextFieldValue(text, range(edit.selection), edit.composition?.let(::range))
+}
+
+internal class PhoneNumberTransformation(private val country: Country) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val formatted = CountryManager.formatAsYouType(text.text, country)
+        fun digitOffsets(value: String) = value.mapIndexedNotNull { index, char ->
+            (index + 1).takeIf { char.isDigit() }
+        }
+        val originalDigits = digitOffsets(text.text)
+        val formattedDigits = digitOffsets(formatted)
+        fun offset(source: String, target: String, targetDigits: List<Int>, index: Int): Int {
+            if (index == 0) return 0
+            val digits = source.take(index).count(Char::isDigit)
+            return if (digits > 0) targetDigits[digits - 1] else if (target.startsWith("+")) 1 else 0
+        }
+        return TransformedText(
+            AnnotatedString(formatted),
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int =
+                    offset(text.text, formatted, formattedDigits, offset)
+
+                override fun transformedToOriginal(offset: Int): Int =
+                    offset(formatted, text.text, originalDigits, offset)
+            },
+        )
+    }
 }

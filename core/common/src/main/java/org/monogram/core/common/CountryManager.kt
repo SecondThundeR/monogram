@@ -70,22 +70,15 @@ object CountryManager {
     fun countryForTypedPhone(phone: String, fallback: Country?): Country? {
         val digits = phone.filter { it.isDigit() }
         if (digits.isEmpty()) return fallback
-        if (fallback != null && (digits.startsWith(fallback.code) || isNationalNumber(digits, fallback))) {
+        val detected = countryForPhone(digits) ?: return fallback
+        if (fallback != null && digits.startsWith(fallback.code) &&
+            fallback.code.length >= detected.code.length &&
+            !(detected.code == "7" && digits.length > 1)
+        ) {
             return fallback
         }
-        return countryForPhone(digits) ?: fallback
+        return detected
     }
-
-    fun phoneValueForTypedDigits(digits: String, fallback: Country?): String {
-        if (digits.isEmpty()) return ""
-        if (fallback != null && !digits.startsWith(fallback.code) && isNationalNumber(digits, fallback)) {
-            return "+${fallback.code}$digits"
-        }
-        return "+$digits"
-    }
-
-    private fun isNationalNumber(digits: String, country: Country): Boolean =
-        isValidPhoneNumber("+${country.code}$digits", country.iso)
 
     fun formatPhoneNumber(raw: String): String {
         val digits = raw.filter { it.isDigit() }
@@ -173,26 +166,29 @@ object CountryManager {
 
     fun formatAsYouType(raw: String, country: Country): String {
         val digits = raw.filter { it.isDigit() }
-        if (digits.isEmpty()) return ""
+        if (digits.isEmpty()) return if (raw.trimStart().startsWith("+")) "+" else ""
 
-        val international = formatPhoneNumber("+$digits")
-        if (international.filter { it.isDigit() } == digits) return international
-
-        if (!digits.startsWith(country.code) && isPartialCountryCode(digits)) return "+$digits"
-
-        val local = digits.removePrefix(country.code)
-        return "+${country.code} ${formatPartialPhoneNumber(country.iso, local)}".trimEnd()
+        val rule = customRules.firstOrNull { digits.startsWith(it.code) }
+        val formatted = when {
+            rule?.format == false -> "+$digits"
+            rule?.code == "888" -> format888(digits)
+            else -> {
+                val formatter = phoneUtil.getAsYouTypeFormatter(country.iso)
+                var result = formatter.inputDigit('+')
+                digits.forEach { result = formatter.inputDigit(it) }
+                result
+            }
+        }
+        return formatted.takeIf { it.filter(Char::isDigit) == digits } ?: "+$digits"
     }
 
-    private fun isPartialCountryCode(digits: String): Boolean =
-        countryTable.any { it.code.length > digits.length && it.code.startsWith(digits) }
-
-    fun exampleNumber(iso: String): String? = runCatching {
-        val example = phoneUtil.getExampleNumberForType(iso, PhoneNumberUtil.PhoneNumberType.MOBILE)
-        phoneUtil.format(example, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL).let { formatted ->
-            formatted.substringBefore(" ") + " " +
-                formatted.substringAfter(" ").replace(Regex("\\d"), "0")
-        }
+    fun exampleNumber(country: Country): String? = runCatching {
+        country.mask?.let { return "+${country.code} ${it.replace('X', '0')}" }
+        val example = phoneUtil.getExampleNumberForType(country.iso, PhoneNumberUtil.PhoneNumberType.MOBILE)
+        val formatted = phoneUtil.format(example, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)
+        val national = formatted.removePrefix("+${country.code}").trim()
+        if (national.startsWith("+")) return null
+        "+${country.code} ${national.replace(Regex("\\d"), "0")}"
     }.getOrNull()
 
     fun simIso(context: Context): String? {
@@ -201,9 +197,7 @@ object CountryManager {
     }
 
     fun resolveIso(simIso: String?, deviceIso: String?): String {
-        val candidate = simIso?.trim()?.takeIf { it.isNotEmpty() }?.uppercase()
-            ?: deviceIso?.trim()?.takeIf { it.isNotEmpty() }?.uppercase()
-        return if (candidate != null && countryForIso(candidate) != null) candidate else fallbackIso
+        return countryForIso(simIso)?.iso ?: countryForIso(deviceIso)?.iso ?: fallbackIso
     }
 
     private fun format888(digits: String): String {
