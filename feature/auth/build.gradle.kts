@@ -34,6 +34,7 @@ dependencies {
     api(libs.decompose)
     implementation(libs.decompose.compose)
     implementation(libs.essenty.lifecycle)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -44,4 +45,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mvikotlin.main)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

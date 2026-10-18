@@ -319,3 +319,74 @@ fn session_token_keeps_only_catalog_tokens() {
         "UNKNOWN"
     );
 }
+
+#[test]
+fn password_required_preserves_the_auth_key_and_restores_after_restart() {
+    let path = std::env::temp_dir().join(format!(
+        "monogram-auth-password-{}.json",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+    let handle = create_client(1, "test".into(), path.to_string_lossy().into());
+    with_client_mut(handle, |state| {
+        state.snapshot.auth_key = Some(vec![7; 256]);
+        let step =
+            auth::finish_auth_step(state, Err(MtprotoError::PasswordRequired), "+12025550123")?;
+        assert_eq!(
+            step,
+            crate::AuthStepDto::AwaitingPassword {
+                phone: "+12025550123".into()
+            }
+        );
+        assert_eq!(state.snapshot.auth_key, Some(vec![7; 256]));
+        Ok(())
+    })
+    .unwrap();
+    destroy_client(handle);
+    let restored = create_client(1, "test".into(), path.to_string_lossy().into());
+    assert_eq!(
+        current_auth_step(restored).unwrap(),
+        crate::AuthStepDto::AwaitingPassword {
+            phone: "+12025550123".into()
+        }
+    );
+    cancel_auth(restored).unwrap();
+    assert_eq!(
+        current_auth_step(restored).unwrap(),
+        crate::AuthStepDto::LoggedOut
+    );
+    destroy_client(restored);
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn auth_failures_persist_retry_deadlines_and_clear_expired_codes() {
+    let path =
+        std::env::temp_dir().join(format!("monogram-auth-retry-{}.json", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let handle = create_client(1, "test".into(), path.to_string_lossy().into());
+    with_client_mut(handle, |state| {
+        state.pending_auth = crate::AuthStepDto::AwaitingCode {
+            sent: crate::AuthCodeSent {
+                phone: "+12025550123".into(),
+                phone_code_hash: "hash".into(),
+                ..Default::default()
+            },
+        };
+        let error = MtprotoError::Message("RPC 420: FLOOD_WAIT_120".into());
+        assert!(auth::finish_auth_step(state, Err(error), "+12025550123").is_err());
+        let crate::AuthStepDto::AwaitingCode { sent } = &state.pending_auth else {
+            panic!("expected code")
+        };
+        assert!(sent.resend_available_at >= crate::auth::auth_rpc::now() + 119);
+        let saved = FileSessionStore::new(&path).load().unwrap().unwrap();
+        assert_eq!(saved.pending_auth, state.pending_auth);
+        let error = MtprotoError::Message("RPC 400: PHONE_CODE_EXPIRED".into());
+        assert!(auth::finish_auth_step(state, Err(error), "+12025550123").is_err());
+        assert_eq!(state.pending_auth, crate::AuthStepDto::LoggedOut);
+        Ok(())
+    })
+    .unwrap();
+    destroy_client(handle);
+    let _ = std::fs::remove_file(path);
+}

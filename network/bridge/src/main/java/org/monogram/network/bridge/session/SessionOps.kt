@@ -20,11 +20,18 @@ interface SessionOps {
     suspend fun connect(): Outcome<Unit>
     suspend fun setTestDc(enabled: Boolean): Outcome<Unit> = Outcome.Ok(Unit)
     suspend fun usesTestDc(): Outcome<Boolean> = Outcome.Ok(false)
-    suspend fun sendAuthCode(phone: String): Outcome<AuthState.AwaitingCode>
+    suspend fun sendAuthCode(phone: String): Outcome<AuthState>
     suspend fun resendAuthCode(
         phone: String,
         phoneCodeHash: String,
-    ): Outcome<AuthState.AwaitingCode> = sendAuthCode(phone)
+    ): Outcome<AuthState> = Outcome.Err("auth resend unavailable")
+
+    suspend fun cancelAuth(): Outcome<Unit> = Outcome.Ok(Unit)
+    suspend fun restoreAuth(): Outcome<AuthState> = Outcome.Ok(AuthState.LoggedOut)
+    suspend fun sendAuthEmail(phone: String, phoneCodeHash: String, email: String): Outcome<AuthState> =
+        Outcome.Err("auth email unavailable")
+    suspend fun resetAuthEmail(phone: String, phoneCodeHash: String): Outcome<AuthState> =
+        Outcome.Err("auth email reset unavailable")
 
     suspend fun signIn(phone: String, phoneCodeHash: String, code: String): Outcome<AuthState>
     suspend fun checkPassword(password: String): Outcome<AuthState.Authorized>

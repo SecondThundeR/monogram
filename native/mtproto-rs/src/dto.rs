@@ -1,12 +1,68 @@
-#[derive(Debug, Clone, uniffi::Record)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, uniffi::Enum,
+)]
+pub enum AuthCodeTypeDto {
+    #[default]
+    App,
+    Sms,
+    Call,
+    FlashCall,
+    MissedCall,
+    Email,
+    EmailSetup,
+    EmailSetupCode,
+    Fragment,
+    Firebase,
+    SmsWord,
+    SmsPhrase,
+}
+
+#[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, uniffi::Record)]
 pub struct AuthCodeSent {
     pub phone: String,
     pub phone_code_hash: String,
-    pub code_type: String,
+    pub code_type: AuthCodeTypeDto,
     pub code_length: i32,
+    pub next_type: Option<AuthCodeTypeDto>,
+    pub resend_available_at: i64,
+    pub email_pattern: String,
+    pub email_address: Option<String>,
+    pub email_reset_available_at: Option<i64>,
+    pub email_reset_pending_date: Option<i64>,
+    pub fragment_url: String,
+    pub phone_pattern: String,
+    pub beginning: String,
+    pub google_signin_allowed: bool,
+    pub apple_signin_allowed: bool,
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
+impl std::fmt::Debug for AuthCodeSent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthCodeSent")
+            .field("code_type", &self.code_type)
+            .field("next_type", &self.next_type)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, uniffi::Enum,
+)]
+pub enum AuthStepDto {
+    #[default]
+    LoggedOut,
+    AwaitingCode {
+        sent: AuthCodeSent,
+    },
+    AwaitingPassword {
+        phone: String,
+    },
+    Authorized {
+        signed: AuthSignedIn,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, uniffi::Record)]
 pub struct AuthSignedIn {
     pub user_id: i64,
     pub dc_id: i32,

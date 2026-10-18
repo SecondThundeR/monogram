@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.monogram.core.models.AuthState
 import org.monogram.core.ui.theme.MonogramTheme
 import org.monogram.feature.auth.AuthStore
 import org.monogram.feature.auth.R
@@ -68,7 +69,7 @@ internal fun AuthOtpField(
                 repeat(codeLength) { index ->
                     val digit = value.getOrNull(index)?.toString().orEmpty()
                     val focused = value.length == index ||
-                        (value.length == codeLength && index == codeLength - 1)
+                            (value.length == codeLength && index == codeLength - 1)
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -109,7 +110,7 @@ private fun AuthCodePreview() {
             state = AuthStore.State(
                 phone = "+49151",
                 code = "12",
-                phase = AuthStore.Phase.CodeEntry("+49151", "hash", "app"),
+                phase = AuthStore.Phase.CodeEntry(AuthState.AwaitingCode("+49151", "hash")),
             ),
             onIntent = {},
         )
@@ -124,7 +125,7 @@ private fun AuthCode6Preview() {
             state = AuthStore.State(
                 phone = "+49151",
                 code = "17209",
-                phase = AuthStore.Phase.CodeEntry("+49151", "hash", "app", codeLength = 6),
+                phase = AuthStore.Phase.CodeEntry(AuthState.AwaitingCode("+49151", "hash", codeLength = 6)),
             ),
             onIntent = {},
         )

@@ -1,6 +1,6 @@
 package org.monogram.mtproto
 
-import uniffi.monogram_mtproto.AuthCodeSent
+import uniffi.monogram_mtproto.AuthStepDto
 import uniffi.monogram_mtproto.AuthSignedIn
 import uniffi.monogram_mtproto.ChatDto
 import uniffi.monogram_mtproto.ContactsSearchDto
@@ -35,7 +35,7 @@ object MtprotoNativeStub : MtprotoNative {
 
     override fun destroyClient(handle: Long) = Unit
 
-    override fun sendAuthCode(handle: Long, phone: String): AuthCodeSent {
+    override fun sendAuthCode(handle: Long, phone: String): AuthStepDto {
         nativeUnavailable()
     }
 
@@ -44,7 +44,7 @@ object MtprotoNativeStub : MtprotoNative {
         phone: String,
         phoneCodeHash: String,
         phoneCode: String,
-    ): AuthSignedIn {
+    ): AuthStepDto {
         nativeUnavailable()
     }
 

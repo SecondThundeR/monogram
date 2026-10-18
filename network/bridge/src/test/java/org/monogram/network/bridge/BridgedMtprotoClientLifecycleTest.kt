@@ -20,7 +20,7 @@ import org.monogram.core.common.TelegramCredentials
 import org.monogram.core.models.PeerId
 import org.monogram.mtproto.MtprotoNative
 import org.monogram.network.bridge.session.nativeFailureLogLine
-import uniffi.monogram_mtproto.AuthSignedIn
+import uniffi.monogram_mtproto.AuthStepDto
 import uniffi.monogram_mtproto.ChatDto
 import uniffi.monogram_mtproto.MessageDto
 import uniffi.monogram_mtproto.MtprotoException
@@ -163,7 +163,7 @@ class BridgedMtprotoClientLifecycleTest {
     fun signInPreservesCancellation() = runTest {
         val cancelled = CancellationException("cancelled")
         val native = object : RecordingNative() {
-            override fun signIn(handle: Long, phone: String, phoneCodeHash: String, phoneCode: String): AuthSignedIn =
+            override fun signIn(handle: Long, phone: String, phoneCodeHash: String, phoneCode: String): AuthStepDto =
                 throw cancelled
         }
         val client = client(native, StandardTestDispatcher(testScheduler))

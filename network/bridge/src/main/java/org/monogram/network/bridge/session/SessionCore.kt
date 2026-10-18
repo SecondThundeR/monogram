@@ -412,97 +412,42 @@ internal class SessionCore(
         return rpc("isAuthorized failed") { activeHandle -> native.isAuthorized(activeHandle) }
     }
 
-    override suspend fun sendAuthCode(phone: String): Outcome<AuthState.AwaitingCode> {
+    private suspend fun authStep(operation: String, block: (Long) -> uniffi.monogram_mtproto.AuthStepDto): Outcome<AuthState> {
         sessionDead = false
-        AppLog.api("auth.sendCode", "start")
-        // Do not probe a revoked persisted session before sendCode. The native
-        // auth entry point detects session_dead and creates a fresh auth key;
-        // calling connect() first would return AUTH_KEY_UNREGISTERED and make
-        // the login form appear permanently stuck.
-        val result = rpc("auth.sendCode failed") { activeHandle ->
-            val sent = native.sendAuthCode(activeHandle, phone)
-            AuthState.AwaitingCode(
-                phone = sent.phone,
-                phoneCodeHash = sent.phoneCodeHash,
-                codeType = sent.codeType,
-                codeLength = if (sent.codeLength > 0) sent.codeLength else 5,
-            )
+        return rpc("auth.$operation failed") { handle ->
+            val state = block(handle).toAuthState()
+            if (state is AuthState.Authorized) maybeStartUpdates(handle)
+            AppLog.api("auth.$operation", when (state) {
+                is AuthState.AwaitingCode -> "ok type=${state.codeType} next=${state.nextType} length=${state.codeLength}"
+                is AuthState.AwaitingPassword -> "password required"
+                is AuthState.Authorized -> "authorized"
+                AuthState.LoggedOut -> "logged out"
+            })
+            state
         }
-        if (result is Outcome.Ok) {
-            AppLog.api(
-                "auth.sendCode",
-                "ok type=${result.value.codeType} length=${result.value.codeLength}"
-            )
-        }
-        return result
     }
 
-    override suspend fun resendAuthCode(
-        phone: String,
-        phoneCodeHash: String,
-    ): Outcome<AuthState.AwaitingCode> {
-        AppLog.api("auth.resendCode", "start")
-        val result = rpc("auth.resendCode failed") { activeHandle ->
-            val sent = native.resendAuthCode(activeHandle, phone, phoneCodeHash)
-            AuthState.AwaitingCode(
-                phone = sent.phone,
-                phoneCodeHash = sent.phoneCodeHash,
-                codeType = sent.codeType,
-                codeLength = if (sent.codeLength > 0) sent.codeLength else 5,
-            )
-        }
-        if (result is Outcome.Ok) {
-            AppLog.api(
-                "auth.resendCode",
-                "ok type=${result.value.codeType} length=${result.value.codeLength}"
-            )
-        }
-        return result
-    }
+    override suspend fun cancelAuth(): Outcome<Unit> = rpc("auth.cancel failed", native::cancelAuth)
 
-    override suspend fun signIn(
-        phone: String,
-        phoneCodeHash: String,
-        code: String,
-    ): Outcome<AuthState> {
-        sessionDead = false
-        AppLog.api("auth.signIn", "start")
-        when (val connected = connect()) {
-            is Outcome.Err -> return connected
-            is Outcome.Ok -> Unit
-        }
-        return try {
-            val signedIn = onNative { activeHandle ->
-                val result = native.signIn(activeHandle, phone, phoneCodeHash, code)
-                maybeStartUpdates(activeHandle)
-                result
-            }
-            AppLog.api("auth.signIn", "ok")
-            Outcome.Ok(
-                AuthState.Authorized(
-                    AuthSession(
-                        userId = PeerId(signedIn.userId),
-                        dcId = signedIn.dcId,
-                    ),
-                ),
-            )
-        } catch (e: MtprotoException.RegistrationRequired) {
-            fail(e, "auth.signIn failed")
-        } catch (e: MtprotoException.PasswordRequired) {
-            Outcome.Ok(AuthState.AwaitingPassword)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            fail(e, "auth.signIn failed")
-        }
-    }
+    override suspend fun restoreAuth(): Outcome<AuthState> = authStep("restore", native::currentAuthStep)
+
+    override suspend fun sendAuthCode(phone: String): Outcome<AuthState> =
+        authStep("sendCode") { native.sendAuthCode(it, phone) }
+
+    override suspend fun resendAuthCode(phone: String, phoneCodeHash: String): Outcome<AuthState> =
+        authStep("resendCode") { native.resendAuthCode(it, phone, phoneCodeHash) }
+
+    override suspend fun sendAuthEmail(phone: String, phoneCodeHash: String, email: String): Outcome<AuthState> =
+        authStep("sendEmail") { native.sendAuthEmail(it, phone, phoneCodeHash, email) }
+
+    override suspend fun resetAuthEmail(phone: String, phoneCodeHash: String): Outcome<AuthState> =
+        authStep("resetEmail") { native.resetAuthEmail(it, phone, phoneCodeHash) }
+
+    override suspend fun signIn(phone: String, phoneCodeHash: String, code: String): Outcome<AuthState> =
+        authStep("signIn") { native.signIn(it, phone, phoneCodeHash, code) }
 
     override suspend fun checkPassword(password: String): Outcome<AuthState.Authorized> {
         sessionDead = false
-        when (val connected = connect()) {
-            is Outcome.Err -> return connected
-            is Outcome.Ok -> Unit
-        }
         return rpc("auth.checkPassword failed") { activeHandle ->
             val signedIn = native.checkPassword(activeHandle, password)
             maybeStartUpdates(activeHandle)

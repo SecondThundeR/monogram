@@ -46,6 +46,7 @@ internal fun AuthInlineError(message: String?, modifier: Modifier = Modifier) {
 @Composable
 internal fun errorText(error: AuthStore.Error): String = when (error) {
     AuthStore.Error.PhoneRequired -> stringResource(R.string.auth_error_phone_required)
+    AuthStore.Error.EmailRequired -> stringResource(R.string.auth_error_email_required)
     AuthStore.Error.CodeRequired -> stringResource(R.string.auth_error_code_required)
     AuthStore.Error.PasswordRequired -> stringResource(R.string.auth_error_password_required)
     is AuthStore.Error.Rpc -> when {

@@ -287,6 +287,7 @@ fn old_session_files_without_a_journal_still_load() {
         seen_messages: Default::default(),
         session_dead: false,
         logout_tokens: Vec::new(),
+        pending_auth: Default::default(),
         new_session: None,
         test_dc: false,
         dc_auth_keys: Default::default(),

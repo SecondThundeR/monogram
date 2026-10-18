@@ -1,6 +1,6 @@
 package org.monogram.mtproto
 
-import uniffi.monogram_mtproto.AuthCodeSent
+import uniffi.monogram_mtproto.AuthStepDto
 import uniffi.monogram_mtproto.AuthSignedIn
 import uniffi.monogram_mtproto.BotCallbackAnswerDto
 import uniffi.monogram_mtproto.ChatDto
@@ -118,6 +118,10 @@ import uniffi.monogram_mtproto.searchGlobal as nativeSearchGlobal
 import uniffi.monogram_mtproto.searchMessages as nativeSearchMessages
 import uniffi.monogram_mtproto.searchMessagesFiltered as nativeSearchMessagesFiltered
 import uniffi.monogram_mtproto.searchMessagesPage as nativeSearchMessagesPage
+import uniffi.monogram_mtproto.cancelAuth as nativeCancelAuth
+import uniffi.monogram_mtproto.currentAuthStep as nativeCurrentAuthStep
+import uniffi.monogram_mtproto.sendAuthEmail as nativeSendAuthEmail
+import uniffi.monogram_mtproto.resetAuthEmail as nativeResetAuthEmail
 import uniffi.monogram_mtproto.sendAuthCode as nativeSendAuthCode
 import uniffi.monogram_mtproto.sendInlineBotResult as nativeSendInlineBotResult
 import uniffi.monogram_mtproto.sendLocation as nativeSendLocation
@@ -262,21 +266,31 @@ object MtprotoNativeUniFfi : MtprotoNative {
 
     override fun clientApiId(handle: Long): Int = nativeClientApiId(handle.toULong())
 
-    override fun sendAuthCode(handle: Long, phone: String): AuthCodeSent =
+    override fun sendAuthCode(handle: Long, phone: String): AuthStepDto =
         nativeSendAuthCode(handle.toULong(), phone)
 
     override fun resendAuthCode(
         handle: Long,
         phone: String,
         phoneCodeHash: String,
-    ): AuthCodeSent = nativeResendAuthCode(handle.toULong(), phone, phoneCodeHash)
+    ): AuthStepDto = nativeResendAuthCode(handle.toULong(), phone, phoneCodeHash)
+
+    override fun cancelAuth(handle: Long) = nativeCancelAuth(handle.toULong())
+
+    override fun currentAuthStep(handle: Long): AuthStepDto = nativeCurrentAuthStep(handle.toULong())
+
+    override fun sendAuthEmail(handle: Long, phone: String, phoneCodeHash: String, email: String): AuthStepDto =
+        nativeSendAuthEmail(handle.toULong(), phone, phoneCodeHash, email)
+
+    override fun resetAuthEmail(handle: Long, phone: String, phoneCodeHash: String): AuthStepDto =
+        nativeResetAuthEmail(handle.toULong(), phone, phoneCodeHash)
 
     override fun signIn(
         handle: Long,
         phone: String,
         phoneCodeHash: String,
         phoneCode: String,
-    ): AuthSignedIn = nativeSignIn(handle.toULong(), phone, phoneCodeHash, phoneCode)
+    ): AuthStepDto = nativeSignIn(handle.toULong(), phone, phoneCodeHash, phoneCode)
 
     override fun checkPassword(handle: Long, password: String): AuthSignedIn =
         nativeCheckPassword(handle.toULong(), password)

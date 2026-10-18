@@ -430,14 +430,34 @@ data class UploadItem(
     val captionEntities: List<TextEntity> = emptyList(),
 )
 
+enum class AuthCodeType {
+    App, Sms, Call, FlashCall, MissedCall, Email, EmailSetup, EmailSetupCode,
+    Fragment, Firebase, SmsWord, SmsPhrase;
+
+    val isText: Boolean get() = this == SmsWord || this == SmsPhrase
+}
+
 sealed class AuthState {
     data object LoggedOut : AuthState()
     data class AwaitingCode(
         val phone: String,
         val phoneCodeHash: String,
-        val codeType: String = "",
+        val codeType: AuthCodeType = AuthCodeType.App,
         val codeLength: Int = 5,
-    ) : AuthState()
-    data object AwaitingPassword : AuthState()
+        val nextType: AuthCodeType? = null,
+        val resendAvailableAt: Long = 0,
+        val emailPattern: String = "",
+        val emailAddress: String? = null,
+        val emailResetAvailableAt: Long? = null,
+        val emailResetPendingDate: Long? = null,
+        val fragmentUrl: String = "",
+        val phonePattern: String = "",
+        val beginning: String = "",
+        val googleSigninAllowed: Boolean = false,
+        val appleSigninAllowed: Boolean = false,
+    ) : AuthState() {
+        val canResend: Boolean get() = nextType != null || codeType == AuthCodeType.Email || codeType == AuthCodeType.EmailSetupCode
+    }
+    data class AwaitingPassword(val phone: String = "") : AuthState()
     data class Authorized(val session: AuthSession) : AuthState()
 }

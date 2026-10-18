@@ -3,7 +3,7 @@ package org.monogram.feature.auth.ui
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -38,7 +38,7 @@ fun AuthContent(
     modifier: Modifier = Modifier,
     onOpenProxy: (() -> Unit)? = null,
 ) {
-    val state by component.state.collectAsState()
+    val state by component.state.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     LaunchedEffect(state.phase) {

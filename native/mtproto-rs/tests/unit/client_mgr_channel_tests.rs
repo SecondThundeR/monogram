@@ -74,6 +74,7 @@ fn begin_updates_preserves_the_unapplied_cursor_in_persistence() {
         channel_recovery: VecDeque::new(),
         seen_messages: HashSet::new(),
         logout_tokens: Vec::new(),
+        pending_auth: Default::default(),
         new_session: None,
         session_dead: false,
         session_dead_reason: None,

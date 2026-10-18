@@ -88,6 +88,7 @@ pub(crate) struct ClientData {
     pub(crate) channel_recovery: VecDeque<ChannelRecovery>,
     pub(crate) seen_messages: HashSet<(i64, i32)>,
     pub(crate) logout_tokens: Vec<Vec<u8>>,
+    pub(crate) pending_auth: crate::AuthStepDto,
     pub(crate) new_session: Option<crate::rpc::NewSessionMetadata>,
     pub(crate) home_dc: i32,
     pub(crate) home_session_id: i64,
@@ -158,6 +159,7 @@ pub(crate) struct ClientState {
     pub(crate) channel_recovery: VecDeque<ChannelRecovery>,
     pub(crate) seen_messages: HashSet<(i64, i32)>,
     pub(crate) logout_tokens: Vec<Vec<u8>>,
+    pub(crate) pending_auth: crate::AuthStepDto,
     pub(crate) new_session: Option<crate::rpc::NewSessionMetadata>,
     /// Home auth key is dead (401 AUTH_KEY_* / SESSION_*). Fail RPCs without more network.
     pub(crate) session_dead: bool,
@@ -298,6 +300,10 @@ pub fn create_client(api_id: i32, api_hash: String, session_path: String) -> u64
         Ok(session) => (session, false),
         Err(_) => (None, true),
     };
+    let pending_auth = loaded
+        .as_ref()
+        .map(|s| s.pending_auth.clone())
+        .unwrap_or_default();
     let channel_recovery = loaded
         .as_ref()
         .map(|s| s.channel_recovery.clone())
@@ -394,6 +400,7 @@ pub fn create_client(api_id: i32, api_hash: String, session_path: String) -> u64
                 channel_recovery,
                 seen_messages,
                 logout_tokens,
+                pending_auth,
                 new_session,
                 home_dc: snapshot.dc_id,
                 home_session_id: snapshot.session_id,
@@ -597,6 +604,7 @@ pub(crate) fn with_client_mut<T>(
             channel_recovery: d.channel_recovery.clone(),
             seen_messages: d.seen_messages.clone(),
             logout_tokens: d.logout_tokens.clone(),
+            pending_auth: d.pending_auth.clone(),
             new_session: d.new_session.clone(),
             session_dead: d.session_dead,
             session_dead_reason: d.session_dead_reason.clone(),
@@ -617,6 +625,7 @@ pub(crate) fn with_client_mut<T>(
     let before_media = state.media.clone();
     let before_user_id = state.user_id;
     let before_updates = state.updates.clone();
+    let before_pending_auth = state.pending_auth.clone();
     let before_logout = state.logout_tokens.clone();
     let before_new_session = state.new_session.clone();
     let before_dead = state.session_dead;
@@ -658,7 +667,8 @@ pub(crate) fn with_client_mut<T>(
         *client.policy.upload_rtt.lock() = None;
     }
     let updates_changed = before_updates != state.updates;
-    let tokens_changed = before_logout != state.logout_tokens;
+    let pending_auth_changed = before_pending_auth != state.pending_auth;
+    let tokens_changed = before_logout != state.logout_tokens || pending_auth_changed;
     let session_meta_changed = before_new_session != state.new_session
         || before_dead != state.session_dead
         || before_test_dc != state.test_dc;
@@ -685,6 +695,9 @@ pub(crate) fn with_client_mut<T>(
             d.updates_started |= state.updates_started;
             peers_changed || media_changed || updates_changed
         };
+        if pending_auth_changed {
+            d.pending_auth = state.pending_auth;
+        }
         d.logout_tokens = state.logout_tokens;
         d.new_session = state.new_session;
         d.session_dead = state.session_dead;
@@ -813,6 +826,7 @@ pub(crate) fn with_read_lane<T>(
                 channel_recovery: d.channel_recovery.clone(),
                 seen_messages: d.seen_messages.clone(),
                 logout_tokens: d.logout_tokens.clone(),
+                pending_auth: d.pending_auth.clone(),
                 new_session: d.new_session.clone(),
                 session_dead: d.session_dead,
                 session_dead_reason: d.session_dead_reason.clone(),

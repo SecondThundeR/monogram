@@ -1,6 +1,6 @@
 package org.monogram.mtproto
 
-import uniffi.monogram_mtproto.AuthCodeSent
+import uniffi.monogram_mtproto.AuthStepDto
 import uniffi.monogram_mtproto.AuthSignedIn
 import uniffi.monogram_mtproto.BotCallbackAnswerDto
 import uniffi.monogram_mtproto.ChatDto
@@ -114,11 +114,18 @@ interface MtprotoNative {
     fun clientApiId(handle: Long): Int = 0
 
     @Throws(MtprotoException::class)
-    fun sendAuthCode(handle: Long, phone: String): AuthCodeSent
+    fun sendAuthCode(handle: Long, phone: String): AuthStepDto
 
     @Throws(MtprotoException::class)
-    fun resendAuthCode(handle: Long, phone: String, phoneCodeHash: String): AuthCodeSent =
-        sendAuthCode(handle, phone)
+    fun resendAuthCode(handle: Long, phone: String, phoneCodeHash: String): AuthStepDto =
+        throw UnsupportedOperationException("auth resend unavailable")
+
+    fun cancelAuth(handle: Long) = Unit
+    fun currentAuthStep(handle: Long): AuthStepDto = AuthStepDto.LoggedOut
+    fun sendAuthEmail(handle: Long, phone: String, phoneCodeHash: String, email: String): AuthStepDto =
+        throw UnsupportedOperationException("auth email unavailable")
+    fun resetAuthEmail(handle: Long, phone: String, phoneCodeHash: String): AuthStepDto =
+        throw UnsupportedOperationException("auth email reset unavailable")
 
     @Throws(MtprotoException::class)
     fun signIn(
@@ -126,7 +133,7 @@ interface MtprotoNative {
         phone: String,
         phoneCodeHash: String,
         phoneCode: String,
-    ): AuthSignedIn
+    ): AuthStepDto
 
     @Throws(MtprotoException::class)
     fun checkPassword(handle: Long, password: String): AuthSignedIn

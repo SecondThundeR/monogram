@@ -322,7 +322,7 @@ fn inline_ref(bytes: Vec<u8>) -> MediaRef {
 #[test]
 fn media_retention_keeps_avatars_and_caps_other_slices() {
     use crate::media::{
-        insert_media, MESSAGE_MEDIA_CAP, PERSISTED_INLINE_BYTE_CAP, ZERO_ID_DOCUMENT_CAP,
+        MESSAGE_MEDIA_CAP, PERSISTED_INLINE_BYTE_CAP, ZERO_ID_DOCUMENT_CAP, insert_media,
     };
     let mut index = MediaIndex::default();
     insert_media(
@@ -439,4 +439,33 @@ fn oversized_session_media_loads_and_next_save_shrinks() {
     let again = store.load().unwrap().unwrap();
     assert!(again.media.contains_key(&media_key(9, 0)));
     assert!(again.media.len() <= crate::media::MESSAGE_MEDIA_CAP + 1);
+}
+
+#[test]
+fn pending_email_and_password_steps_survive_session_reload() {
+    use crate::{AuthCodeSent, AuthCodeTypeDto, AuthStepDto};
+    let dir = TestDir::new();
+    let store = dir.store();
+    let mut session = seed(&store);
+    for step in [
+        AuthStepDto::AwaitingCode {
+            sent: AuthCodeSent {
+                phone: "+12025550123".into(),
+                phone_code_hash: "pending-hash".into(),
+                code_type: AuthCodeTypeDto::EmailSetupCode,
+                code_length: 6,
+                email_pattern: "a***@example.com".into(),
+                email_address: Some("a@example.com".into()),
+                resend_available_at: 123456,
+                ..Default::default()
+            },
+        },
+        AuthStepDto::AwaitingPassword {
+            phone: "+12025550123".into(),
+        },
+    ] {
+        session.pending_auth = step.clone();
+        store.save(&session).unwrap();
+        assert_eq!(store.load().unwrap().unwrap().pending_auth, step);
+    }
 }

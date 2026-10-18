@@ -324,6 +324,7 @@ pub(crate) fn drop_all_transports(handle: u64) {
 pub(crate) fn recreate_mtproto_session(state: &mut ClientState) -> Result<(), MtprotoError> {
     let dc = state.snapshot.dc_id;
     state.user_id = None;
+    state.pending_auth = crate::AuthStepDto::LoggedOut;
     state.updates = None;
     state.updates_started = false;
     state.session_dead = false;

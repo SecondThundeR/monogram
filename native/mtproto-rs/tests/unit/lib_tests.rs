@@ -31,6 +31,7 @@ fn session_file_persists_user_id() {
             channel_pts: Default::default(),
             seen_messages: Default::default(),
             logout_tokens: vec![vec![1, 2, 3]],
+            pending_auth: Default::default(),
             new_session: None,
             session_dead: true,
             test_dc: false,

@@ -2,58 +2,27 @@ package org.monogram.feature.auth
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.monogram.core.models.AuthCodeType
 import org.monogram.core.models.AuthState
-import org.monogram.feature.auth.ui.AuthCodeLength
 
 class AuthStoreCodeLengthTest {
-
     @Test
-    fun defaultCodeLengthIsFive() {
-        val defaultState = AuthState.AwaitingCode(
-            phone = "+12025550123",
-            phoneCodeHash = "hash1",
-        )
-        assertEquals(5, defaultState.codeLength)
-
-        val defaultPhase = AuthStore.Phase.CodeEntry(
-            phone = "+12025550123",
-            phoneCodeHash = "hash1",
-        )
-        assertEquals(5, defaultPhase.codeLength)
-        assertEquals(AuthCodeLength, defaultPhase.codeLength)
+    fun numericCodesUseTheServerLength() {
+        val challenge = AuthState.AwaitingCode("+12025550123", "hash", codeLength = 6)
+        assertEquals("172098", filterAuthCode("17 20984", challenge))
     }
 
     @Test
-    fun dynamicCodeLengthPreserved() {
-        val awaitingSix = AuthState.AwaitingCode(
-            phone = "+12025550123",
-            phoneCodeHash = "hash1",
-            codeType = "app",
-            codeLength = 6,
-        )
-        assertEquals(6, awaitingSix.codeLength)
-
-        val phaseSix = AuthStore.Phase.CodeEntry(
-            phone = awaitingSix.phone,
-            phoneCodeHash = awaitingSix.phoneCodeHash,
-            codeType = awaitingSix.codeType,
-            codeLength = awaitingSix.codeLength,
-        )
-        assertEquals(6, phaseSix.codeLength)
+    fun smsWordsAndPhrasesKeepTheirLettersAndSpaces() {
+        for (type in listOf(AuthCodeType.SmsWord, AuthCodeType.SmsPhrase)) {
+            val challenge = AuthState.AwaitingCode("+12025550123", "hash", type, codeLength = 0)
+            assertEquals("blue sky", filterAuthCode("blue sky", challenge))
+        }
     }
 
     @Test
-    fun codeFilteringRespectsExpectedCodeLength() {
-        val input = "1720984"
-
-        val length5 = 5
-        val filtered5 = input.filter(Char::isDigit).take(length5)
-        assertEquals("17209", filtered5)
-        assertEquals(5, filtered5.length)
-
-        val length6 = 6
-        val filtered6 = input.filter(Char::isDigit).take(length6)
-        assertEquals("172098", filtered6)
-        assertEquals(6, filtered6.length)
+    fun flashCallsDoNotTruncateTheCallingNumberToAnAssumedCodeLength() {
+        val challenge = AuthState.AwaitingCode("+12025550123", "hash", AuthCodeType.FlashCall, codeLength = 0)
+        assertEquals("12025550123", filterAuthCode("+1 202 555 0123", challenge))
     }
 }

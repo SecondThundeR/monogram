@@ -65,6 +65,8 @@ pub struct ClientSession {
     /// Bounded future auth tokens returned by `auth.logOut`.
     #[serde(default)]
     pub logout_tokens: Vec<Vec<u8>>,
+    #[serde(default)]
+    pub pending_auth: crate::AuthStepDto,
     /// Last `new_session_created` metadata observed on any lane.
     #[serde(default)]
     pub new_session: Option<NewSessionMetadata>,
@@ -177,6 +179,7 @@ impl FileSessionStore {
             seen_messages: HashSet::new(),
             session_dead: false,
             logout_tokens: Vec::new(),
+            pending_auth: Default::default(),
             new_session: None,
             test_dc: false,
             dc_auth_keys: HashMap::new(),

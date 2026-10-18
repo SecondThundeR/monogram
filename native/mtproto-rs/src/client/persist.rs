@@ -32,7 +32,7 @@ fn persist_generation(path: &Path) -> Arc<AtomicU64> {
 }
 
 fn bump_persist_clock(clock: &AtomicU64) {
-    let _ = clock.fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+    let _ = clock.try_update(Ordering::AcqRel, Ordering::Acquire, |value| {
         Some(value.saturating_add(1))
     });
 }
@@ -107,6 +107,7 @@ pub(crate) fn persist(state: &mut ClientState) -> Result<(), MtprotoError> {
         channel_recovery: state.channel_recovery.clone(),
         seen_messages: state.seen_messages.clone(),
         logout_tokens: state.logout_tokens.clone(),
+        pending_auth: state.pending_auth.clone(),
         new_session: state.new_session.clone(),
         session_dead: state.session_dead,
         test_dc: state.test_dc,
@@ -160,6 +161,7 @@ pub(crate) fn persist_updates_data(client: &Client, session_id: i64) -> Result<b
             channel_recovery: d.channel_recovery.clone(),
             seen_messages: d.seen_messages.clone(),
             logout_tokens: d.logout_tokens.clone(),
+            pending_auth: d.pending_auth.clone(),
             new_session: d.new_session.clone(),
             session_dead: d.session_dead,
             test_dc: d.test_dc,
@@ -197,7 +199,9 @@ pub(crate) fn persist_updates_data(client: &Client, session_id: i64) -> Result<b
     }
     #[cfg(test)]
     if FORCE_STALE_SAVES
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |left| left.checked_sub(1))
+        .try_update(Ordering::AcqRel, Ordering::Acquire, |left| {
+            left.checked_sub(1)
+        })
         .is_ok()
     {
         return Ok(false);

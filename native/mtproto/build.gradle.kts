@@ -244,8 +244,33 @@ val generateUniffiMtproto =
             val file = outputs.files.singleFile
             if (!file.exists()) return@doLast
             val original = file.readText()
-            val stripped = original.lineSequence().joinToString("\n") { it.trimEnd() }.trimEnd() + "\n"
-            if (stripped != original) file.writeText(stripped)
+            val packageName = Regex("(?m)^package ([\\w.]+)$").find(original)!!.groupValues[1]
+            val imports = Regex("(?m)^import ([\\w.]+)$").findAll(original)
+                .map { it.groupValues[1] }.groupBy { it.substringAfterLast('.') }
+            val declarations = Regex(
+                "(?m)^\\s*(?:(?:public|internal|private|protected|open|sealed|data|enum|abstract|final)\\s+)*" +
+                    "(?:class|object|interface|typealias)\\s+`?(\\w+)",
+            ).findAll(original).map { it.groupValues[1] }.toSet()
+            val references = Regex(
+                "(?m)^(?:package|import) [^\\r\\n]*|//[^\\r\\n]*|/\\*[\\s\\S]*?\\*/|" +
+                    "\"\"\"[\\s\\S]*?\"\"\"|" +
+                    "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|" +
+                    "(?<type>\\b(?:[a-z_]\\w*\\.)+[A-Z]\\w*\\b)",
+            )
+            val shortened = references.replace(original) { match ->
+                val qualified = match.groups["type"]?.value ?: return@replace match.value
+                val name = qualified.substringAfterLast('.')
+                val imported = imports[name].orEmpty()
+                when {
+                    qualified.substringBeforeLast('.') == packageName && imported.isEmpty() -> name
+                    name in declarations -> qualified
+                    imported == listOf(qualified) -> name
+                    qualified.substringBeforeLast('.') == "kotlin" && imported.isEmpty() -> name
+                    else -> qualified
+                }
+            }
+            val normalized = shortened.lineSequence().joinToString("\n") { it.trimEnd() }.trimEnd() + "\n"
+            if (normalized != original) file.writeText(normalized)
         }
     }
 

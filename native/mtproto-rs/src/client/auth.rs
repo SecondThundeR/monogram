@@ -5,7 +5,7 @@ use tellers_mtproto_session::{OsRandom, Snapshot};
 
 use crate::auth::auth_rpc;
 use crate::session_file::FileSessionStore;
-use crate::{AuthCodeSent, AuthSignedIn, MtprotoError};
+use crate::{AuthCodeTypeDto, AuthSignedIn, AuthStepDto, MtprotoError};
 
 use super::*;
 
@@ -112,6 +112,7 @@ pub(crate) fn apply_test_dc(
     crate::rpc::set_use_test_dc(want_test);
     state.test_dc = want_test;
     state.dc_auth_keys.clear();
+    state.pending_auth = AuthStepDto::LoggedOut;
     state.snapshot =
         Snapshot::new(want_dc, &mut OsRandom).map_err(|e| MtprotoError::Message(e.to_string()))?;
     state.session_dead = false;
@@ -136,7 +137,7 @@ pub fn set_client_test_dc(handle: u64, test: bool) -> Result<(), MtprotoError> {
     with_client_mut(handle, |state| apply_test_dc(state, test, DEFAULT_DC_ID))
 }
 
-pub fn send_auth_code(handle: u64, phone: String) -> Result<AuthCodeSent, MtprotoError> {
+pub fn send_auth_code(handle: u64, phone: String) -> Result<AuthStepDto, MtprotoError> {
     let sent = with_client_mut(handle, |state| {
         apply_test_dc_for_phone(state, &phone)?;
         if state.session_dead {
@@ -158,48 +159,225 @@ pub fn send_auth_code(handle: u64, phone: String) -> Result<AuthCodeSent, Mtprot
                     state.api_id,
                     &state.api_hash,
                     &phone,
-                    &state.logout_tokens,
+                    &mut state.logout_tokens,
                 )
             })
         };
-        let sent = match attempt(state) {
-            Ok(sent) => sent,
-            Err(err) if is_password_required(&err) => {
-                // The previous sign-in may have left this auth key in a
-                // server-side 2FA-pending state while the process/UI died.
-                // sendCode is the explicit start of a new auth attempt, so
-                // rotate the key and retry once instead of surfacing the stale
-                // SESSION_PASSWORD_NEEDED to the phone form.
+        let result = match attempt(state) {
+            Err(err) if is_auth_restart(&err) || auth_rpc::is_srp_id_invalid(&err) => {
                 recreate_mtproto_session(state)?;
                 ensure_ready(state)?;
-                attempt(state)?
+                attempt(state)
             }
-            Err(err) if is_auth_restart(&err) || crate::auth::auth_rpc::is_srp_id_invalid(&err) => {
-                // Stale 2FA/auth-key leftover from a previous attempt.
-                recreate_mtproto_session(state)?;
-                ensure_ready(state)?;
-                attempt(state)?
-            }
-            Err(err) => return Err(err),
+            result => result,
         };
-        persist(state)?;
-        Ok(sent)
+        finish_auth_step(state, result, &phone)
     })?;
     drop_updates_transport(handle);
     Ok(sent)
+}
+
+pub fn cancel_auth(handle: u64) -> Result<(), MtprotoError> {
+    with_client_mut(handle, |state| {
+        if matches!(state.pending_auth, AuthStepDto::AwaitingPassword { .. }) {
+            return recreate_mtproto_session(state);
+        }
+        state.pending_auth = AuthStepDto::LoggedOut;
+        persist(state)
+    })
+}
+
+pub fn current_auth_step(handle: u64) -> Result<AuthStepDto, MtprotoError> {
+    with_client_mut(handle, |state| {
+        if state.session_dead {
+            return Ok(AuthStepDto::LoggedOut);
+        }
+        if let Some(user_id) = state.user_id {
+            return Ok(AuthStepDto::Authorized {
+                signed: AuthSignedIn {
+                    user_id,
+                    dc_id: state.snapshot.dc_id,
+                },
+            });
+        }
+        Ok(state.pending_auth.clone())
+    })
+}
+
+fn apply_auth_step(state: &mut ClientState, step: &AuthStepDto) -> Result<(), MtprotoError> {
+    if let AuthStepDto::Authorized { signed } = step {
+        state.user_id = Some(signed.user_id);
+        state.pending_auth = AuthStepDto::LoggedOut;
+    } else {
+        state.pending_auth = step.clone();
+    }
+    persist(state)
+}
+
+pub(super) fn finish_auth_step(
+    state: &mut ClientState,
+    result: Result<AuthStepDto, MtprotoError>,
+    phone: &str,
+) -> Result<AuthStepDto, MtprotoError> {
+    let step = match result {
+        Ok(step) => step,
+        Err(error) if is_password_required(&error) => AuthStepDto::AwaitingPassword {
+            phone: phone.into(),
+        },
+        Err(error) => {
+            if is_auth_restart(&error) {
+                recreate_mtproto_session(state)?;
+            } else if let MtprotoError::Message(message) = &error {
+                if message.contains("PHONE_CODE_EXPIRED") {
+                    state.pending_auth = AuthStepDto::LoggedOut;
+                } else if let Some(wait) = message.split("FLOOD_WAIT_").nth(1) {
+                    let seconds = wait
+                        .chars()
+                        .take_while(char::is_ascii_digit)
+                        .collect::<String>()
+                        .parse::<i64>()
+                        .ok();
+                    if let (Some(seconds), AuthStepDto::AwaitingCode { sent }) =
+                        (seconds, &mut state.pending_auth)
+                    {
+                        sent.resend_available_at = sent
+                            .resend_available_at
+                            .max(auth_rpc::now().saturating_add(seconds));
+                    }
+                }
+            }
+            persist(state)?;
+            return Err(error);
+        }
+    };
+    apply_auth_step(state, &step)?;
+    Ok(step)
+}
+
+fn pending_code(
+    state: &ClientState,
+    phone: &str,
+    hash: &str,
+) -> Result<crate::AuthCodeSent, MtprotoError> {
+    match &state.pending_auth {
+        AuthStepDto::AwaitingCode { sent }
+            if sent.phone == phone && sent.phone_code_hash == hash =>
+        {
+            Ok(sent.clone())
+        }
+        _ => Err(MtprotoError::Message("RPC 400: PHONE_CODE_EXPIRED".into())),
+    }
 }
 
 pub fn resend_auth_code(
     handle: u64,
     phone: String,
     phone_code_hash: String,
-) -> Result<AuthCodeSent, MtprotoError> {
+) -> Result<AuthStepDto, MtprotoError> {
+    let result = with_client_mut(handle, |state| {
+        let pending = pending_code(state, &phone, &phone_code_hash)?;
+        let delay = pending.resend_available_at - auth_rpc::now();
+        if delay > 0 {
+            return Err(MtprotoError::Message(format!(
+                "RPC 420: FLOOD_WAIT_{delay}"
+            )));
+        }
+        let step = if matches!(
+            pending.code_type,
+            AuthCodeTypeDto::Email | AuthCodeTypeDto::EmailSetupCode
+        ) {
+            let email = pending.email_address.as_deref().unwrap_or_default();
+            let mut step = call_with_migrate(state, |state| {
+                auth_rpc::send_email(
+                    &mut state.snapshot,
+                    state.api_id,
+                    &phone,
+                    &phone_code_hash,
+                    email,
+                )
+            });
+            if let Ok(AuthStepDto::AwaitingCode { sent }) = &mut step {
+                sent.email_reset_available_at = pending.email_reset_available_at;
+                sent.email_reset_pending_date = pending.email_reset_pending_date;
+                sent.google_signin_allowed = pending.google_signin_allowed;
+                sent.apple_signin_allowed = pending.apple_signin_allowed;
+            }
+            step
+        } else {
+            if pending.next_type.is_none() {
+                return Err(MtprotoError::Message(
+                    "RPC 400: SEND_CODE_UNAVAILABLE".into(),
+                ));
+            }
+            call_with_migrate(state, |state| {
+                auth_rpc::resend_code(
+                    &mut state.snapshot,
+                    state.api_id,
+                    &phone,
+                    &phone_code_hash,
+                    &mut state.logout_tokens,
+                )
+            })
+        };
+        finish_auth_step(state, step, &phone)
+    })?;
+    drop_updates_transport(handle);
+    Ok(result)
+}
+
+pub fn send_auth_email(
+    handle: u64,
+    phone: String,
+    phone_code_hash: String,
+    email: String,
+) -> Result<AuthStepDto, MtprotoError> {
     with_client_mut(handle, |state| {
-        let sent = call_with_migrate(state, |state| {
-            auth_rpc::resend_code(&mut state.snapshot, state.api_id, &phone, &phone_code_hash)
-        })?;
-        persist(state)?;
-        Ok(sent)
+        let pending = pending_code(state, &phone, &phone_code_hash)?;
+        if !matches!(
+            pending.code_type,
+            AuthCodeTypeDto::EmailSetup | AuthCodeTypeDto::EmailSetupCode
+        ) {
+            return Err(MtprotoError::Message("RPC 400: EMAIL_NOT_ALLOWED".into()));
+        }
+        let step = call_with_migrate(state, |state| {
+            auth_rpc::send_email(
+                &mut state.snapshot,
+                state.api_id,
+                &phone,
+                &phone_code_hash,
+                &email,
+            )
+        });
+        finish_auth_step(state, step, &phone)
+    })
+}
+
+pub fn reset_auth_email(
+    handle: u64,
+    phone: String,
+    phone_code_hash: String,
+) -> Result<AuthStepDto, MtprotoError> {
+    with_client_mut(handle, |state| {
+        let pending = pending_code(state, &phone, &phone_code_hash)?;
+        if pending.code_type != AuthCodeTypeDto::Email {
+            return Err(MtprotoError::Message("RPC 400: EMAIL_NOT_ALLOWED".into()));
+        }
+        let deadline = pending.email_reset_pending_date.or(pending.email_reset_available_at)
+            .ok_or_else(|| MtprotoError::Message("RPC 400: EMAIL_NOT_ALLOWED".into()))?;
+        let delay = deadline - auth_rpc::now();
+        if delay > 0 {
+            return Err(MtprotoError::Message(format!("RPC 420: FLOOD_WAIT_{delay}")));
+        }
+        let step = call_with_migrate(state, |state| {
+            auth_rpc::reset_email(
+                &mut state.snapshot,
+                state.api_id,
+                &phone,
+                &phone_code_hash,
+                &mut state.logout_tokens,
+            )
+        });
+        finish_auth_step(state, step, &phone)
     })
 }
 
@@ -208,42 +386,47 @@ pub fn sign_in(
     phone: String,
     phone_code_hash: String,
     phone_code: String,
-) -> Result<AuthSignedIn, MtprotoError> {
-    let signed = with_client_mut(handle, |state| {
-        let signed = match call_with_migrate(state, |state| {
-            auth_rpc::sign_in(
-                &mut state.snapshot,
-                state.api_id,
-                &phone,
-                &phone_code_hash,
-                &phone_code,
-            )
-        }) {
-            Ok(signed) => signed,
-            Err(err) if is_auth_restart(&err) => {
-                recreate_mtproto_session(state)?;
-                return Err(err);
+) -> Result<AuthStepDto, MtprotoError> {
+    let step = with_client_mut(handle, |state| {
+        let pending = pending_code(state, &phone, &phone_code_hash)?;
+        let result = call_with_migrate(state, |state| {
+            if pending.code_type == AuthCodeTypeDto::EmailSetupCode {
+                auth_rpc::verify_email(
+                    &mut state.snapshot,
+                    state.api_id,
+                    &phone,
+                    &phone_code_hash,
+                    &phone_code,
+                    &mut state.logout_tokens,
+                )
+            } else {
+                auth_rpc::sign_in(
+                    &mut state.snapshot,
+                    state.api_id,
+                    &phone,
+                    &phone_code_hash,
+                    &phone_code,
+                    pending.code_type == AuthCodeTypeDto::Email,
+                    &mut state.logout_tokens,
+                )
+                .map(|signed| AuthStepDto::Authorized { signed })
             }
-            Err(MtprotoError::PasswordRequired) => {
-                // The auth key/session counters are valid and must survive a
-                // process restart while the UI is on the 2FA password step.
-                persist(state)?;
-                return Err(MtprotoError::PasswordRequired);
-            }
-            Err(err) => return Err(err),
-        };
-        state.user_id = Some(signed.user_id);
-        persist(state)?;
-        Ok(signed)
+        });
+        finish_auth_step(state, result, &phone)
     })?;
     drop_updates_transport(handle);
-    Ok(signed)
+    Ok(step)
 }
 
 pub fn check_password(handle: u64, password: String) -> Result<AuthSignedIn, MtprotoError> {
     let signed = with_client_mut(handle, |state| {
         let signed = match call_with_migrate(state, |state| {
-            auth_rpc::check_password(&mut state.snapshot, state.api_id, &password)
+            auth_rpc::check_password(
+                &mut state.snapshot,
+                state.api_id,
+                &password,
+                &mut state.logout_tokens,
+            )
         }) {
             Ok(signed) => signed,
             Err(err) if is_auth_restart(&err) => {
@@ -254,6 +437,7 @@ pub fn check_password(handle: u64, password: String) -> Result<AuthSignedIn, Mtp
             Err(err) => return Err(err),
         };
         state.user_id = Some(signed.user_id);
+        state.pending_auth = AuthStepDto::LoggedOut;
         persist(state)?;
         Ok(signed)
     })?;
@@ -276,16 +460,11 @@ pub fn logout(handle: u64) -> Result<(), MtprotoError> {
         };
 
         let dc = state.snapshot.dc_id;
-        if let Ok(Some(token)) = &remote {
-            if !token.is_empty() && token.len() <= 256 {
-                state.logout_tokens.push(token.clone());
-                if state.logout_tokens.len() > 20 {
-                    let keep_from = state.logout_tokens.len() - 20;
-                    state.logout_tokens.drain(..keep_from);
-                }
-            }
+        if let Ok(token) = &remote {
+            auth_rpc::remember_token(&mut state.logout_tokens, token.clone());
         }
         state.user_id = None;
+        state.pending_auth = AuthStepDto::LoggedOut;
         state.peers.clear();
         state.updates = None;
         state.media.clear();

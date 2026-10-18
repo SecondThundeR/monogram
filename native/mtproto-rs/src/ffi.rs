@@ -26,13 +26,12 @@ use crate::session_file;
 use crate::vpx;
 use crate::waveform;
 use crate::{
-    AuthCodeSent, AuthSignedIn, BotCallbackAnswerDto, ChatDto, ContactsSearchDto, DiscussionDto,
+    AuthSignedIn, AuthStepDto, BotCallbackAnswerDto, ChatDto, ContactsSearchDto, DiscussionDto,
     FolderDto, ForumTopicsPageDto, GlobalMessageSearchDto, InlineBotResultsDto, InstantViewDto,
-    JoinChatDto, LottieSize, MessageDto, MessagesPageDto, MtprotoError, NotifyExceptionDto, NotifySettingsDto,
-    ProfileDto,
-    ReactionChoiceDto, ResolvedPeerDto, SavedGifDto, StickerCatalogDto, StickerListDto,
-    StickerPackDto, UpdateEventDto, UpdatesStateDto, UploadItemDto, VpxAlphaFrame, VpxFrame,
-    WallpaperCatalogDto,
+    JoinChatDto, LottieSize, MessageDto, MessagesPageDto, MtprotoError, NotifyExceptionDto,
+    NotifySettingsDto, ProfileDto, ReactionChoiceDto, ResolvedPeerDto, SavedGifDto,
+    StickerCatalogDto, StickerListDto, StickerPackDto, UpdatesStateDto, UploadItemDto,
+    VpxAlphaFrame, VpxFrame, WallpaperCatalogDto,
 };
 
 #[uniffi::export]
@@ -331,7 +330,7 @@ pub fn client_uses_test_dc(handle: u64) -> bool {
 }
 
 #[uniffi::export]
-pub fn send_auth_code(handle: u64, phone: String) -> Result<AuthCodeSent, MtprotoError> {
+pub fn send_auth_code(handle: u64, phone: String) -> Result<AuthStepDto, MtprotoError> {
     client::send_auth_code(handle, phone)
 }
 
@@ -340,8 +339,37 @@ pub fn resend_auth_code(
     handle: u64,
     phone: String,
     phone_code_hash: String,
-) -> Result<AuthCodeSent, MtprotoError> {
+) -> Result<AuthStepDto, MtprotoError> {
     client::resend_auth_code(handle, phone, phone_code_hash)
+}
+
+#[uniffi::export]
+pub fn cancel_auth(handle: u64) -> Result<(), MtprotoError> {
+    client::cancel_auth(handle)
+}
+
+#[uniffi::export]
+pub fn current_auth_step(handle: u64) -> Result<AuthStepDto, MtprotoError> {
+    client::current_auth_step(handle)
+}
+
+#[uniffi::export]
+pub fn send_auth_email(
+    handle: u64,
+    phone: String,
+    phone_code_hash: String,
+    email: String,
+) -> Result<AuthStepDto, MtprotoError> {
+    client::send_auth_email(handle, phone, phone_code_hash, email)
+}
+
+#[uniffi::export]
+pub fn reset_auth_email(
+    handle: u64,
+    phone: String,
+    phone_code_hash: String,
+) -> Result<AuthStepDto, MtprotoError> {
+    client::reset_auth_email(handle, phone, phone_code_hash)
 }
 
 #[uniffi::export]
@@ -350,7 +378,7 @@ pub fn sign_in(
     phone: String,
     phone_code_hash: String,
     phone_code: String,
-) -> Result<AuthSignedIn, MtprotoError> {
+) -> Result<AuthStepDto, MtprotoError> {
     client::sign_in(handle, phone, phone_code_hash, phone_code)
 }
 
