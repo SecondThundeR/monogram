@@ -73,6 +73,7 @@ import org.monogram.feature.auth.normalizePhone
 
 internal fun authStepOf(phase: AuthStore.Phase): Int? = when (phase) {
     AuthStore.Phase.PhoneEntry -> 0
+    is AuthStore.Phase.QrEntry -> 0
     is AuthStore.Phase.CodeEntry -> 1
     AuthStore.Phase.PasswordEntry -> 2
     is AuthStore.Phase.Authorized -> null
@@ -86,6 +87,10 @@ fun AuthScreen(
     onOpenProxy: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    if (state.phase is AuthStore.Phase.QrEntry) {
+        AuthQrScreen(state, onIntent, modifier)
+        return
+    }
     val step = authStepOf(state.phase)
     if (step == null) {
         Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))

@@ -37,7 +37,7 @@ import org.monogram.network.http.MediaRepository
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsComponent(
     componentContext: ComponentContext,
-    storeFactory: StoreFactory,
+    private val storeFactory: StoreFactory,
     private val client: MtprotoClient,
     sessionStore: SessionMetadataStore?,
     warmup: OfflineWarmup?,
@@ -72,6 +72,16 @@ class SettingsComponent(
     }
 
     val state: StateFlow<SettingsStore.State> = store.stateFlow
+    private val devicesStore by lazy {
+        instanceKeeper.getStore("devices") { DevicesStoreFactory(storeFactory, client).create() }
+    }
+    val devices: StateFlow<DevicesStore.State> by lazy { devicesStore.stateFlow }
+    fun onDevices(intent: DevicesStore.Intent) = devicesStore.accept(intent)
+    fun onDeviceScanned(link: String) {
+        if (pages.value.active.configuration != SettingsPage.DeviceScanner) return
+        pageNavigation.pop()
+        onDevices(DevicesStore.Intent.Accept(link))
+    }
     val updateState: StateFlow<AppUpdateState> =
         appUpdate?.state ?: MutableStateFlow(AppUpdateState.Idle)
     private val notificationsStore = instanceKeeper.getStore("notifications") {

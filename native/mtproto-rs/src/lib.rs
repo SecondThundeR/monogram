@@ -23,6 +23,7 @@ mod peers;
 mod perf;
 mod presence;
 mod profile;
+mod qr;
 mod reply_markup;
 mod request_control;
 mod rpc;
@@ -51,6 +52,7 @@ pub use ffi::*;
 pub use instant_view::InstantViewDto;
 pub use media::wallpaper_rpc::{WallpaperCatalogDto, WallpaperDto};
 pub use media::{ProgressCallback, notify_progress, set_progress_callback};
+pub use qr::QrCodeMatrix;
 
 uniffi::setup_scaffolding!();
 

@@ -15,6 +15,115 @@ use crate::api_invoke;
 use crate::auth::srp;
 use crate::{AuthCodeSent, AuthSignedIn, MtprotoError};
 
+pub(crate) fn has_login_token_update(packet: &[u8]) -> bool {
+    use tellers_mtproto::codec::{BoxedDecode, Decoder, Limits};
+    use tellers_mtproto::latest::api::{Update, Updates};
+    let Ok(mut decoder) = Decoder::new(
+        packet,
+        Limits {
+            max_bytes: 1024 * 1024,
+            max_total_bytes: 1024 * 1024,
+            max_vector_len: 4096,
+            max_depth: 32,
+        },
+    ) else {
+        return false;
+    };
+    let Ok(updates) = Updates::decode_boxed(&mut decoder) else {
+        return false;
+    };
+    if decoder.finish().is_err() {
+        return false;
+    }
+    match updates {
+        Updates::UpdateShort(short) => matches!(*short.update, Update::UpdateLoginToken(_)),
+        Updates::Updates(updates) => {
+            let Vector::Vector(updates) = *updates.updates;
+            updates
+                .field_1
+                .iter()
+                .any(|u| matches!(**u, Update::UpdateLoginToken(_)))
+        }
+        Updates::UpdatesCombined(updates) => {
+            let Vector::Vector(updates) = *updates.updates;
+            updates
+                .field_1
+                .iter()
+                .any(|u| matches!(**u, Update::UpdateLoginToken(_)))
+        }
+        _ => false,
+    }
+}
+
+fn device_session(
+    authorization: tellers_mtproto::latest::api::Authorization,
+) -> crate::DeviceSessionDto {
+    let tellers_mtproto::latest::api::Authorization::Authorization(a) = authorization;
+    crate::DeviceSessionDto {
+        hash: a.hash,
+        current: a.current.is_some(),
+        password_pending: a.password_pending.is_some(),
+        device_model: a.device_model,
+        platform: a.platform,
+        system_version: a.system_version,
+        app_name: a.app_name,
+        app_version: a.app_version,
+        date_active: a.date_active,
+        ip: a.ip,
+        country: a.country,
+        region: a.region,
+    }
+}
+
+pub fn get_device_sessions(
+    snapshot: &mut Snapshot,
+    api_id: i32,
+) -> Result<Vec<crate::DeviceSessionDto>, MtprotoError> {
+    use tellers_mtproto::latest::api::{AccountAuthorizations, AccountGetAuthorizationsRequest};
+    let sessions: AccountAuthorizations =
+        api_invoke::invoke_api(snapshot, api_id, AccountGetAuthorizationsRequest {})?;
+    let AccountAuthorizations::AccountAuthorizations(sessions) = sessions;
+    let Vector::Vector(sessions) = *sessions.authorizations;
+    Ok(sessions
+        .field_1
+        .into_iter()
+        .map(|a| device_session(*a))
+        .collect())
+}
+
+pub fn accept_login_token(
+    snapshot: &mut Snapshot,
+    api_id: i32,
+    token: &[u8],
+) -> Result<crate::DeviceSessionDto, MtprotoError> {
+    use tellers_mtproto::latest::api::AuthAcceptLoginTokenRequest;
+    if token.is_empty() || token.len() > 512 {
+        return Err(MtprotoError::Message("RPC 400: AUTH_TOKEN_INVALID".into()));
+    }
+    let authorization = api_invoke::invoke_api(
+        snapshot,
+        api_id,
+        AuthAcceptLoginTokenRequest {
+            token: token.to_vec(),
+        },
+    )?;
+    Ok(device_session(authorization))
+}
+
+pub fn revoke_device_session(
+    snapshot: &mut Snapshot,
+    api_id: i32,
+    hash: i64,
+) -> Result<(), MtprotoError> {
+    use tellers_mtproto::latest::api::{AccountResetAuthorizationRequest, Bool};
+    let result: Bool =
+        api_invoke::invoke_api(snapshot, api_id, AccountResetAuthorizationRequest { hash })?;
+    match result {
+        Bool::BoolTrue(_) => Ok(()),
+        _ => Err(MtprotoError::Message("session revocation failed".into())),
+    }
+}
+
 fn code_settings(logout_tokens: &[Vec<u8>]) -> Box<CodeSettings> {
     let logout_tokens = (!logout_tokens.is_empty()).then(|| {
         Box::new(Vector::Vector(VectorConstructor {
@@ -48,7 +157,7 @@ fn user_id(user: &User) -> Result<i64, MtprotoError> {
     }
 }
 
-fn authorization_to_signed(
+pub(crate) fn authorization_to_signed(
     auth: AuthAuthorization,
     dc_id: i32,
 ) -> Result<AuthSignedIn, MtprotoError> {

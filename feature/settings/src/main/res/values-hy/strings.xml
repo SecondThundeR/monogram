@@ -408,4 +408,25 @@
     <string name="settings_proxy_test_named">Ստուգել %1$s</string>
     <string name="settings_proxy_edit_named">Խմբագրել %1$s</string>
     <string name="settings_notifications_chat_mentions">Հիշատակումներ և պատասխաններ</string>
+    <string name="settings_devices">Սարքեր</string>
+    <string name="settings_devices_sub">Կառավարել կապված սարքերը</string>
+    <string name="settings_devices_link">Կապել սարք</string>
+    <string name="settings_devices_scan_hint">Մուտք գործելու համար սկանավորեք Telegram Desktop-ի կամ Web-ի QR կոդը։</string>
+    <string name="settings_devices_invalid">Սա Telegram մուտք գործելու վավեր QR կոդ չէ։</string>
+    <string name="settings_devices_expired">Այս QR կոդի ժամկետը լրացել է։ Սկանավորեք նոր կոդը։</string>
+    <string name="settings_devices_already_accepted">Այս QR կոդն արդեն օգտագործվել է։ Ստեղծեք նոր կոդ։</string>
+    <string name="settings_devices_already_logged_in">Այս հաշիվն արդեն մուտք է գործել այդ սարքում։</string>
+    <string name="settings_devices_linked">Մուտքը հաջողվեց</string>
+    <string name="settings_devices_terminate_action">Ավարտել</string>
+    <string name="settings_devices_refresh">Թարմացնել</string>
+    <string name="settings_devices_empty">Կապված սարքեր չկան։</string>
+    <string name="settings_devices_current">Այս սարքը</string>
+    <string name="settings_devices_password_pending">Նոր սարքում սպասվում է երկքայլ հաստատման գաղտնաբառը</string>
+    <string name="settings_devices_last_active">Վերջին ակտիվությունը՝ %1$s</string>
+    <string name="settings_devices_terminate">Ավարտել աշխատաշրջանը</string>
+    <string name="settings_devices_terminate_confirm">Դո՞ւրս գալ Telegram-ից այս սարքում։</string>
+    <string name="settings_devices_camera_unavailable">Տեսախցիկը հասանելի չէ։ Ստուգեք՝ արդյոք այն չի օգտագործվում այլ հավելվածի կողմից։</string>
+    <string name="settings_devices_camera_permission">QR կոդերը սկանավորելու համար հավելվածի կարգավորումներում թույլատրեք տեսախցիկի հասանելիությունը։</string>
+    <string name="settings_devices_open_settings">Բացել հավելվածի կարգավորումները</string>
+    <string name="settings_devices_scan_title">Սկանավորել QR կոդը</string>
 </resources>

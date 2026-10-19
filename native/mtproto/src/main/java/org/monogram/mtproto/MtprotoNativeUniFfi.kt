@@ -1,5 +1,6 @@
 package org.monogram.mtproto
 
+import uniffi.monogram_mtproto.DeviceSessionDto
 import uniffi.monogram_mtproto.AuthCodeSent
 import uniffi.monogram_mtproto.AuthSignedIn
 import uniffi.monogram_mtproto.BotCallbackAnswerDto
@@ -36,6 +37,9 @@ import uniffi.monogram_mtproto.UpdatesStateDto
 import uniffi.monogram_mtproto.UploadItemDto
 import uniffi.monogram_mtproto.uniffiEnsureInitialized
 import java.io.File
+import uniffi.monogram_mtproto.acceptLoginToken as nativeAcceptLoginToken
+import uniffi.monogram_mtproto.getDeviceSessions as nativeGetDeviceSessions
+import uniffi.monogram_mtproto.revokeDeviceSession as nativeRevokeDeviceSession
 import uniffi.monogram_mtproto.animatedEmojiMax as nativeAnimatedEmojiMax
 import uniffi.monogram_mtproto.appendTodoItems as nativeAppendTodoItems
 import uniffi.monogram_mtproto.checkPassword as nativeCheckPassword
@@ -146,6 +150,12 @@ import uniffi.monogram_mtproto.updateNotifySettings as nativeUpdateNotifySetting
 import uniffi.monogram_mtproto.updateStatus as nativeUpdateStatus
 
 object MtprotoNativeUniFfi : MtprotoNative {
+    override fun getDeviceSessions(handle: Long) = nativeGetDeviceSessions(handle.toULong())
+    override fun acceptLoginToken(handle: Long, token: ByteArray) = nativeAcceptLoginToken(handle.toULong(), token)
+    override fun revokeDeviceSession(handle: Long, hash: Long) = nativeRevokeDeviceSession(handle.toULong(), hash)
+    override fun exportLoginToken(handle: Long) = uniffi.monogram_mtproto.exportLoginToken(handle.toULong())
+    override fun pollLoginToken(handle: Long) = uniffi.monogram_mtproto.pollLoginToken(handle.toULong())
+
     override fun downloadMessageMediaChunk(handle: Long, chatId: Long, messageId: Int, destPath: String, offset: Long): String =
         uniffi.monogram_mtproto.downloadMessageMediaChunk(handle.toULong(), chatId, messageId, destPath, offset)
     override fun createRequestControl(): Long = uniffi.monogram_mtproto.createRequestControl().toLong()

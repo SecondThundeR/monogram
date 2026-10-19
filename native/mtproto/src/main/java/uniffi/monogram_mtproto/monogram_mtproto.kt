@@ -694,6 +694,8 @@ internal object IntegrityCheckingUniffiLib {
         uniffiCheckContractApiVersion(this)
         uniffiCheckApiChecksums(this)
     }
+    external fun uniffi_monogram_mtproto_checksum_func_accept_login_token(
+    ): Int
     external fun uniffi_monogram_mtproto_checksum_func_acknowledge_update_batch(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_add_waveform_pcm(
@@ -736,6 +738,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_custom_emoji_is_free(
     ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_decode_qr_code(
+    ): Int
     external fun uniffi_monogram_mtproto_checksum_func_decode_vpx_alpha_packet(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_decode_vpx_packet(
@@ -776,9 +780,13 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_edit_text_message(
     ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_export_login_token(
+    ): Int
     external fun uniffi_monogram_mtproto_checksum_func_finish_waveform(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_forward_messages(
+    ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_generate_qr_code(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_get_all_stickers(
     ): Int
@@ -787,6 +795,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_monogram_mtproto_checksum_func_get_chats(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_get_common_chats(
+    ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_get_device_sessions(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_get_discussion_message(
     ): Int
@@ -882,6 +892,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_ping_proxy(
     ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_poll_login_token(
+    ): Int
     external fun uniffi_monogram_mtproto_checksum_func_promote_request_control(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_read_discussion(
@@ -905,6 +917,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_monogram_mtproto_checksum_func_reset_notify_settings(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_resolve_username(
+    ): Int
+    external fun uniffi_monogram_mtproto_checksum_func_revoke_device_session(
     ): Int
     external fun uniffi_monogram_mtproto_checksum_func_search_global(
     ): Int
@@ -994,6 +1008,8 @@ internal object UniffiLib {
     }
     external fun uniffi_monogram_mtproto_fn_init_callback_vtable_downloadprogresslistener(`vtable`: UniffiVTableCallbackInterfaceDownloadProgressListener,
     ): Unit
+    external fun uniffi_monogram_mtproto_fn_func_accept_login_token(`handle`: Long,`token`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_acknowledge_update_batch(`handle`: Long,`accountGeneration`: Long,`batchId`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
     external fun uniffi_monogram_mtproto_fn_func_add_waveform_pcm(`handle`: Long,`samples`: RustBuffer.ByValue,`sampleRate`: Int,`channels`: Int,`presentationTimeUs`: Long,uniffi_out_err: UniffiRustCallStatus,
@@ -1036,6 +1052,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_monogram_mtproto_fn_func_custom_emoji_is_free(`handle`: Long,`documentId`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): Byte
+    external fun uniffi_monogram_mtproto_fn_func_decode_qr_code(`luma`: RustBuffer.ByValue,`width`: Int,`height`: Int,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_decode_vpx_alpha_packet(`handle`: Long,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_decode_vpx_packet(`handle`: Long,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
@@ -1076,9 +1094,13 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_monogram_mtproto_fn_func_edit_text_message(`handle`: Long,`chatId`: Long,`messageId`: Int,`text`: RustBuffer.ByValue,`entitiesJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    external fun uniffi_monogram_mtproto_fn_func_export_login_token(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_finish_waveform(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_forward_messages(`handle`: Long,`fromChatId`: Long,`messageIds`: RustBuffer.ByValue,`toChatId`: Long,`dropAuthor`: Byte,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+    external fun uniffi_monogram_mtproto_fn_func_generate_qr_code(`text`: RustBuffer.ByValue,`size`: Int,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_get_all_stickers(`handle`: Long,`hash`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
@@ -1087,6 +1109,8 @@ internal object UniffiLib {
     external fun uniffi_monogram_mtproto_fn_func_get_chats(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_get_common_chats(`handle`: Long,`userId`: Long,`maxId`: Long,`limit`: Int,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+    external fun uniffi_monogram_mtproto_fn_func_get_device_sessions(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_get_discussion_message(`handle`: Long,`chatId`: Long,`messageId`: Int,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
@@ -1182,6 +1206,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_ping_proxy(`kind`: RustBuffer.ByValue,`host`: RustBuffer.ByValue,`port`: Short,`username`: RustBuffer.ByValue,`password`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Long
+    external fun uniffi_monogram_mtproto_fn_func_poll_login_token(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
     external fun uniffi_monogram_mtproto_fn_func_promote_request_control(`id`: Long,`class`: Int,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
     external fun uniffi_monogram_mtproto_fn_func_read_discussion(`handle`: Long,`chatId`: Long,`msgId`: Int,`readMaxId`: Int,uniffi_out_err: UniffiRustCallStatus,
@@ -1206,6 +1232,8 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_monogram_mtproto_fn_func_resolve_username(`handle`: Long,`username`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    external fun uniffi_monogram_mtproto_fn_func_revoke_device_session(`handle`: Long,`hash`: Long,uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
     external fun uniffi_monogram_mtproto_fn_func_search_global(`handle`: Long,`query`: RustBuffer.ByValue,`offsetRate`: Int,`offsetPeerId`: Long,`offsetId`: Int,`limit`: Int,`folderId`: Int,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     external fun uniffi_monogram_mtproto_fn_func_search_messages(`handle`: Long,`chatId`: Long,`query`: RustBuffer.ByValue,`limit`: Int,uniffi_out_err: UniffiRustCallStatus,
@@ -1395,6 +1423,9 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
+    if ((lib.uniffi_monogram_mtproto_checksum_func_accept_login_token() and 0xFFFF) != 4219) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_monogram_mtproto_checksum_func_acknowledge_update_batch() and 0xFFFF) != 5843) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1458,6 +1489,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_monogram_mtproto_checksum_func_custom_emoji_is_free() and 0xFFFF) != 48167) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_decode_qr_code() and 0xFFFF) != 19143) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_monogram_mtproto_checksum_func_decode_vpx_alpha_packet() and 0xFFFF) != 29097) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1518,10 +1552,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_monogram_mtproto_checksum_func_edit_text_message() and 0xFFFF) != 17813) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_export_login_token() and 0xFFFF) != 33248) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_monogram_mtproto_checksum_func_finish_waveform() and 0xFFFF) != 21863) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_forward_messages() and 0xFFFF) != 63264) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_generate_qr_code() and 0xFFFF) != 9821) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_get_all_stickers() and 0xFFFF) != 28474) {
@@ -1534,6 +1574,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_get_common_chats() and 0xFFFF) != 43261) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_get_device_sessions() and 0xFFFF) != 40643) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_get_discussion_message() and 0xFFFF) != 11564) {
@@ -1677,6 +1720,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_monogram_mtproto_checksum_func_ping_proxy() and 0xFFFF) != 46980) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_poll_login_token() and 0xFFFF) != 22428) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_monogram_mtproto_checksum_func_promote_request_control() and 0xFFFF) != 59110) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1711,6 +1757,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_resolve_username() and 0xFFFF) != 49790) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_monogram_mtproto_checksum_func_revoke_device_session() and 0xFFFF) != 17378) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_monogram_mtproto_checksum_func_search_global() and 0xFFFF) != 25087) {
@@ -2661,6 +2710,94 @@ public object FfiConverterTypeContactsSearchDto: FfiConverterRustBuffer<Contacts
     override fun write(value: ContactsSearchDto, buf: ByteBuffer) {
             FfiConverterSequenceTypeSearchPeerDto.write(value.`people`, buf)
             FfiConverterSequenceTypeSearchPeerDto.write(value.`chats`, buf)
+    }
+}
+
+
+
+data class DeviceSessionDto (
+    var `hash`: kotlin.Long
+    ,
+    var `current`: kotlin.Boolean
+    ,
+    var `passwordPending`: kotlin.Boolean
+    ,
+    var `deviceModel`: kotlin.String
+    ,
+    var `platform`: kotlin.String
+    ,
+    var `systemVersion`: kotlin.String
+    ,
+    var `appName`: kotlin.String
+    ,
+    var `appVersion`: kotlin.String
+    ,
+    var `dateActive`: kotlin.Int
+    ,
+    var `ip`: kotlin.String
+    ,
+    var `country`: kotlin.String
+    ,
+    var `region`: kotlin.String
+
+){
+
+
+
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDeviceSessionDto: FfiConverterRustBuffer<DeviceSessionDto> {
+    override fun read(buf: ByteBuffer): DeviceSessionDto {
+        return DeviceSessionDto(
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DeviceSessionDto) = (
+            FfiConverterLong.allocationSize(value.`hash`) +
+            FfiConverterBoolean.allocationSize(value.`current`) +
+            FfiConverterBoolean.allocationSize(value.`passwordPending`) +
+            FfiConverterString.allocationSize(value.`deviceModel`) +
+            FfiConverterString.allocationSize(value.`platform`) +
+            FfiConverterString.allocationSize(value.`systemVersion`) +
+            FfiConverterString.allocationSize(value.`appName`) +
+            FfiConverterString.allocationSize(value.`appVersion`) +
+            FfiConverterInt.allocationSize(value.`dateActive`) +
+            FfiConverterString.allocationSize(value.`ip`) +
+            FfiConverterString.allocationSize(value.`country`) +
+            FfiConverterString.allocationSize(value.`region`)
+    )
+
+    override fun write(value: DeviceSessionDto, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`hash`, buf)
+            FfiConverterBoolean.write(value.`current`, buf)
+            FfiConverterBoolean.write(value.`passwordPending`, buf)
+            FfiConverterString.write(value.`deviceModel`, buf)
+            FfiConverterString.write(value.`platform`, buf)
+            FfiConverterString.write(value.`systemVersion`, buf)
+            FfiConverterString.write(value.`appName`, buf)
+            FfiConverterString.write(value.`appVersion`, buf)
+            FfiConverterInt.write(value.`dateActive`, buf)
+            FfiConverterString.write(value.`ip`, buf)
+            FfiConverterString.write(value.`country`, buf)
+            FfiConverterString.write(value.`region`, buf)
     }
 }
 
@@ -3940,6 +4077,44 @@ public object FfiConverterTypeProfileDto: FfiConverterRustBuffer<ProfileDto> {
 
 
 
+data class QrCodeMatrix (
+    var `size`: kotlin.UInt
+    ,
+    var `luma`: kotlin.ByteArray
+
+){
+
+
+
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeQrCodeMatrix: FfiConverterRustBuffer<QrCodeMatrix> {
+    override fun read(buf: ByteBuffer): QrCodeMatrix {
+        return QrCodeMatrix(
+            FfiConverterUInt.read(buf),
+            FfiConverterByteArray.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: QrCodeMatrix) = (
+            FfiConverterUInt.allocationSize(value.`size`) +
+            FfiConverterByteArray.allocationSize(value.`luma`)
+    )
+
+    override fun write(value: QrCodeMatrix, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`size`, buf)
+            FfiConverterByteArray.write(value.`luma`, buf)
+    }
+}
+
+
+
 data class ReactionChoiceDto (
     var `emoticon`: kotlin.String
     ,
@@ -5052,6 +5227,93 @@ public object FfiConverterTypeMtprotoError : FfiConverterRustBuffer<MtprotoExcep
 
 
 
+sealed class QrLoginDto {
+
+    data class Token(
+        val `token`: kotlin.ByteArray,
+        val `expires`: kotlin.Int) : QrLoginDto()
+
+    {
+
+
+        companion object
+    }
+
+    data class Authorized(
+        val `session`: uniffi.monogram_mtproto.AuthSignedIn) : QrLoginDto()
+
+    {
+
+
+        companion object
+    }
+
+
+
+
+
+
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeQrLoginDto : FfiConverterRustBuffer<QrLoginDto>{
+    override fun read(buf: ByteBuffer): QrLoginDto {
+        return when(buf.getInt()) {
+            1 -> QrLoginDto.Token(
+                FfiConverterByteArray.read(buf),
+                FfiConverterInt.read(buf),
+                )
+            2 -> QrLoginDto.Authorized(
+                FfiConverterTypeAuthSignedIn.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: QrLoginDto): ULong = when(value) {
+        is QrLoginDto.Token -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterByteArray.allocationSize(value.`token`)
+                + FfiConverterInt.allocationSize(value.`expires`)
+            )
+        }
+        is QrLoginDto.Authorized -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterTypeAuthSignedIn.allocationSize(value.`session`)
+            )
+        }
+    }
+
+    override fun write(value: QrLoginDto, buf: ByteBuffer) {
+        when(value) {
+            is QrLoginDto.Token -> {
+                buf.putInt(1)
+                FfiConverterByteArray.write(value.`token`, buf)
+                FfiConverterInt.write(value.`expires`, buf)
+                Unit
+            }
+            is QrLoginDto.Authorized -> {
+                buf.putInt(2)
+                FfiConverterTypeAuthSignedIn.write(value.`session`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
 sealed class UpdateEventDto {
 
     object ChatsChanged : UpdateEventDto()
@@ -6049,6 +6311,34 @@ public object FfiConverterSequenceTypeChatDto: FfiConverterRustBuffer<List<ChatD
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeDeviceSessionDto: FfiConverterRustBuffer<List<DeviceSessionDto>> {
+    override fun read(buf: ByteBuffer): List<DeviceSessionDto> {
+        val len = buf.getInt()
+        return List<DeviceSessionDto>(len) {
+            FfiConverterTypeDeviceSessionDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<DeviceSessionDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeDeviceSessionDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<DeviceSessionDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeDeviceSessionDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeFolderDto: FfiConverterRustBuffer<List<FolderDto>> {
     override fun read(buf: ByteBuffer): List<FolderDto> {
         val len = buf.getInt()
@@ -6490,6 +6780,19 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
         }
     }
 }
+    @Throws(MtprotoException::class) fun `acceptLoginToken`(`handle`: kotlin.ULong, `token`: kotlin.ByteArray): DeviceSessionDto {
+            return FfiConverterTypeDeviceSessionDto.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_accept_login_token(
+
+
+        FfiConverterULong.lower(`handle`),
+        FfiConverterByteArray.lower(`token`),_status)
+}
+    )
+    }
+
+
     @Throws(MtprotoException::class) fun `acknowledgeUpdateBatch`(`handle`: kotlin.ULong, `accountGeneration`: kotlin.Long, `batchId`: kotlin.Long)
         =
     uniffiRustCallWithError(MtprotoException) { _status ->
@@ -6739,6 +7042,20 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
 
         FfiConverterULong.lower(`handle`),
         FfiConverterLong.lower(`documentId`),_status)
+}
+    )
+    }
+
+
+    @Throws(MtprotoException::class) fun `decodeQrCode`(`luma`: kotlin.ByteArray, `width`: kotlin.UInt, `height`: kotlin.UInt): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_decode_qr_code(
+
+
+        FfiConverterByteArray.lower(`luma`),
+        FfiConverterUInt.lower(`width`),
+        FfiConverterUInt.lower(`height`),_status)
 }
     )
     }
@@ -7001,6 +7318,18 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
     }
 
 
+    @Throws(MtprotoException::class) fun `exportLoginToken`(`handle`: kotlin.ULong): QrLoginDto {
+            return FfiConverterTypeQrLoginDto.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_export_login_token(
+
+
+        FfiConverterULong.lower(`handle`),_status)
+}
+    )
+    }
+
+
     @Throws(MtprotoException::class) fun `finishWaveform`(`handle`: kotlin.ULong): List<kotlin.Float> {
             return FfiConverterSequenceFloat.lift(
     uniffiRustCallWithError(MtprotoException) { _status ->
@@ -7024,6 +7353,19 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
         FfiConverterSequenceInt.lower(`messageIds`),
         FfiConverterLong.lower(`toChatId`),
         FfiConverterBoolean.lower(`dropAuthor`),_status)
+}
+    )
+    }
+
+
+    @Throws(MtprotoException::class) fun `generateQrCode`(`text`: kotlin.String, `size`: kotlin.UInt): QrCodeMatrix {
+            return FfiConverterTypeQrCodeMatrix.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_generate_qr_code(
+
+
+        FfiConverterString.lower(`text`),
+        FfiConverterUInt.lower(`size`),_status)
 }
     )
     }
@@ -7082,6 +7424,18 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
         FfiConverterLong.lower(`userId`),
         FfiConverterLong.lower(`maxId`),
         FfiConverterInt.lower(`limit`),_status)
+}
+    )
+    }
+
+
+    @Throws(MtprotoException::class) fun `getDeviceSessions`(`handle`: kotlin.ULong): List<DeviceSessionDto> {
+            return FfiConverterSequenceTypeDeviceSessionDto.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_get_device_sessions(
+
+
+        FfiConverterULong.lower(`handle`),_status)
 }
     )
     }
@@ -7744,6 +8098,18 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
     )
     }
 
+
+    @Throws(MtprotoException::class) fun `pollLoginToken`(`handle`: kotlin.ULong): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_poll_login_token(
+
+
+        FfiConverterULong.lower(`handle`),_status)
+}
+    )
+    }
+
  fun `promoteRequestControl`(`id`: kotlin.ULong, `class`: kotlin.Int)
         =
     uniffiRustCall() { _status ->
@@ -7910,6 +8276,18 @@ public object FfiConverterSequenceTypeUpdateEventDto: FfiConverterRustBuffer<Lis
 }
     )
     }
+
+
+    @Throws(MtprotoException::class) fun `revokeDeviceSession`(`handle`: kotlin.ULong, `hash`: kotlin.Long)
+        =
+    uniffiRustCallWithError(MtprotoException) { _status ->
+    UniffiLib.uniffi_monogram_mtproto_fn_func_revoke_device_session(
+
+
+        FfiConverterULong.lower(`handle`),
+        FfiConverterLong.lower(`hash`),_status)
+}
+
 
 
     @Throws(MtprotoException::class) fun `searchGlobal`(`handle`: kotlin.ULong, `query`: kotlin.String, `offsetRate`: kotlin.Int, `offsetPeerId`: kotlin.Long, `offsetId`: kotlin.Int, `limit`: kotlin.Int, `folderId`: kotlin.Int): GlobalMessageSearchDto {

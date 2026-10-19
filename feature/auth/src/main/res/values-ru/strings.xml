@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">Буфер обмена пуст</string>
     <string name="auth_paste_code">Вставить код</string>
     <string name="auth_connection">Настройки соединения</string>
+    <string name="auth_qr_login">Войти по QR-коду</string>
+    <string name="auth_qr_instructions">Откройте Telegram на другом устройстве. В Настройках откройте Устройства, нажмите Подключить устройство и отсканируйте этот код.</string>
+    <string name="auth_qr_code">QR-код для входа в Telegram</string>
+    <string name="auth_qr_retry">Повторить</string>
+    <string name="auth_qr_use_phone">Войти по номеру телефона</string>
 </resources>

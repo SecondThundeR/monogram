@@ -19,6 +19,7 @@ use crate::client::push_rpc;
 use crate::lottie;
 use crate::messages::read_receipts_rpc;
 use crate::perf;
+use crate::qr;
 use crate::request_control;
 use crate::scheduler;
 use crate::session_crypto;
@@ -26,7 +27,7 @@ use crate::session_file;
 use crate::vpx;
 use crate::waveform;
 use crate::{
-    AuthCodeSent, AuthSignedIn, BotCallbackAnswerDto, ChatDto, ContactsSearchDto, DiscussionDto,
+    AuthCodeSent, AuthSignedIn, DeviceSessionDto, QrLoginDto, BotCallbackAnswerDto, ChatDto, ContactsSearchDto, DiscussionDto,
     FolderDto, ForumTopicsPageDto, GlobalMessageSearchDto, InlineBotResultsDto, InstantViewDto,
     JoinChatDto, LottieSize, MessageDto, MessagesPageDto, MtprotoError, NotifyExceptionDto, NotifySettingsDto,
     ProfileDto,
@@ -34,6 +35,36 @@ use crate::{
     StickerPackDto, UpdateEventDto, UpdatesStateDto, UploadItemDto, VpxAlphaFrame, VpxFrame,
     WallpaperCatalogDto,
 };
+
+#[uniffi::export]
+pub fn export_login_token(handle: u64) -> Result<QrLoginDto, MtprotoError> {
+    client::export_login_token(handle)
+}
+
+#[uniffi::export]
+pub fn poll_login_token(handle: u64) -> Result<bool, MtprotoError> {
+    client::poll_login_token(handle)
+}
+
+#[uniffi::export]
+pub fn get_device_sessions(
+    handle: u64,
+) -> Result<Vec<DeviceSessionDto>, MtprotoError> {
+    client::get_device_sessions(handle)
+}
+
+#[uniffi::export]
+pub fn accept_login_token(
+    handle: u64,
+    token: Vec<u8>,
+) -> Result<DeviceSessionDto, MtprotoError> {
+    client::accept_login_token(handle, token)
+}
+
+#[uniffi::export]
+pub fn revoke_device_session(handle: u64, hash: i64) -> Result<(), MtprotoError> {
+    client::revoke_device_session(handle, hash)
+}
 
 #[uniffi::export]
 pub fn get_wallpapers(handle: u64, hash: i64) -> Result<WallpaperCatalogDto, MtprotoError> {
@@ -1288,4 +1319,14 @@ pub fn finish_waveform(handle: u64) -> Result<Vec<f32>, MtprotoError> {
 #[uniffi::export]
 pub fn destroy_waveform(handle: u64) {
     waveform::destroy(handle)
+}
+
+#[uniffi::export]
+pub fn generate_qr_code(text: String, size: u32) -> Result<crate::QrCodeMatrix, MtprotoError> {
+    qr::generate(&text, size)
+}
+
+#[uniffi::export]
+pub fn decode_qr_code(luma: Vec<u8>, width: u32, height: u32) -> Result<Option<String>, MtprotoError> {
+    qr::decode(luma, width, height)
 }

@@ -18,6 +18,7 @@ bindgen-cli = ["uniffi/cli"]
 [dependencies]
 uniffi = { version = "0.32", default-features = false }
 parking_lot = "0.12"
+rxing = { version = "0.9.3", default-features = false, features = ["qrcode", "encoders", "decoders", "encoding_rs"] }
 rapidhash = "4"
 compact_str = { version = "0.9", features = ["serde"] }
 smallvec = "1"

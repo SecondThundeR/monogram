@@ -300,6 +300,7 @@ fn replay_safe_method(id: u32) -> bool {
         HelpGetConfigRequest::ID
             | HelpGetAppConfigRequest::ID
             | AccountGetPasswordRequest::ID
+            | AccountGetAuthorizationsRequest::ID
             | MessagesGetDialogsRequest::ID
             | MessagesGetPinnedDialogsRequest::ID
             | MessagesGetWebPagePreviewRequest::ID

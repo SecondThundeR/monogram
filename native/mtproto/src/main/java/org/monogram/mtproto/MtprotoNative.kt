@@ -1,5 +1,7 @@
 package org.monogram.mtproto
 
+import uniffi.monogram_mtproto.DeviceSessionDto
+import uniffi.monogram_mtproto.QrLoginDto
 import uniffi.monogram_mtproto.AuthCodeSent
 import uniffi.monogram_mtproto.AuthSignedIn
 import uniffi.monogram_mtproto.BotCallbackAnswerDto
@@ -44,6 +46,17 @@ data class NativeJoinResult(
 )
 
 interface MtprotoNative {
+    fun exportLoginToken(handle: Long): QrLoginDto =
+        throw UnsupportedOperationException("QR login")
+    fun pollLoginToken(handle: Long): Boolean = throw UnsupportedOperationException("QR login")
+
+    fun getDeviceSessions(handle: Long): List<DeviceSessionDto> =
+        throw UnsupportedOperationException("device sessions")
+    fun acceptLoginToken(handle: Long, token: ByteArray): DeviceSessionDto =
+        throw UnsupportedOperationException("QR login")
+    fun revokeDeviceSession(handle: Long, hash: Long): Unit =
+        throw UnsupportedOperationException("device session revocation")
+
     fun setTransportMode(mode: String) = Unit
     fun setProxy(kind: String, host: String, port: Int, username: String?, password: String?, secret: ByteArray) = Unit
     fun pingProxy(kind: String, host: String, port: Int, username: String?, password: String?, secret: ByteArray): Long =

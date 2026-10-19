@@ -5,13 +5,17 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.monogram.core.common.AppLog
 import org.monogram.core.common.Outcome
 import org.monogram.core.common.telegram.TelegramError
 import org.monogram.core.models.AuthSession
 import org.monogram.core.models.LoadingUi
 import org.monogram.core.models.AuthState
-import org.monogram.network.bridge.MtprotoClient
+import org.monogram.core.models.QrLogin
+import org.monogram.network.bridge.session.SessionOps
 
 interface AuthStore : Store<AuthStore.Intent, AuthStore.State, AuthStore.Label> {
     sealed interface Intent {
@@ -24,10 +28,14 @@ interface AuthStore : Store<AuthStore.Intent, AuthStore.State, AuthStore.Label> 
         data object SignIn : Intent
         data class SubmitPassword(val password: String) : Intent
         data object BackToPhone : Intent
+        data object StartQrLogin : Intent
+        data object PauseQrLogin : Intent
+        data object ResumeQrLogin : Intent
     }
 
     sealed interface Phase {
         data object PhoneEntry : Phase
+        data class QrEntry(val code: QrLogin.Code? = null) : Phase
         data class CodeEntry(
             val phone: String,
             val phoneCodeHash: String,
@@ -66,7 +74,8 @@ interface AuthStore : Store<AuthStore.Intent, AuthStore.State, AuthStore.Label> 
 
 internal class AuthStoreFactory(
     private val storeFactory: StoreFactory,
-    private val client: MtprotoClient,
+    private val client: SessionOps,
+    private val nowSeconds: () -> Long = { System.currentTimeMillis() / 1000 },
 ) {
     fun create(): AuthStore =
         object :
@@ -87,6 +96,7 @@ internal class AuthStoreFactory(
         data class Phase(val value: AuthStore.Phase) : Msg
         data class UseTestDc(val value: Boolean) : Msg
         data object RestartAuth : Msg
+        data object RestartQr : Msg
         data object BackToPhone : Msg
     }
 
@@ -111,6 +121,11 @@ internal class AuthStoreFactory(
 
     private inner class ExecutorImpl :
         CoroutineExecutor<AuthStore.Intent, Nothing, AuthStore.State, Msg, AuthStore.Label>() {
+        private var qrJob: Job? = null
+        private var passwordJob: Job? = null
+        private var qrPasswordPending = false
+        private var qrScreenActive = true
+
         override fun executeIntent(intent: AuthStore.Intent) {
             when (intent) {
                 is AuthStore.Intent.PhoneChanged -> dispatch(Msg.Phone(intent.value))
@@ -124,7 +139,132 @@ internal class AuthStoreFactory(
                 AuthStore.Intent.ResendCode -> resendCode()
                 AuthStore.Intent.SignIn -> signIn()
                 is AuthStore.Intent.SubmitPassword -> submitPassword(intent.password)
-                AuthStore.Intent.BackToPhone -> dispatch(Msg.BackToPhone)
+                AuthStore.Intent.BackToPhone -> backToPhone()
+                AuthStore.Intent.StartQrLogin -> if (!state().loading) startQrLogin()
+                AuthStore.Intent.ResumeQrLogin -> {
+                    qrScreenActive = true
+                    if (qrJob?.isActive != true) {
+                        when {
+                            state().phase is AuthStore.Phase.QrEntry -> startQrLogin()
+                            qrPasswordPending && state().phase is AuthStore.Phase.PasswordEntry &&
+                                !state().loading -> watchQrPassword()
+                        }
+                    }
+                }
+                AuthStore.Intent.PauseQrLogin -> {
+                    qrScreenActive = false
+                    qrJob?.cancel()
+                    if (state().phase is AuthStore.Phase.QrEntry) {
+                        dispatch(Msg.Phase(AuthStore.Phase.QrEntry()))
+                        dispatch(Msg.Loading(false))
+                    }
+                }
+            }
+        }
+
+        private fun backToPhone() {
+            qrJob?.cancel()
+            passwordJob?.cancel()
+            qrPasswordPending = false
+            dispatch(Msg.BackToPhone)
+        }
+
+        private fun startQrLogin() {
+            qrJob?.cancel()
+            passwordJob?.cancel()
+            qrPasswordPending = false
+            dispatch(Msg.RestartQr)
+            dispatch(Msg.Loading(true))
+            qrJob = scope.launch {
+                when (val result = client.setTestDc(state().useTestDc)) {
+                    is Outcome.Err -> {
+                        dispatch(Msg.Error(AuthStore.Error.Rpc(result.telegramError)))
+                        dispatch(Msg.Loading(false))
+                        return@launch
+                    }
+                    is Outcome.Ok -> Unit
+                }
+                while (isActive) {
+                    dispatch(Msg.Loading(true))
+                    val code = when (val result = client.exportLoginToken()) {
+                        is Outcome.Err -> {
+                            dispatch(Msg.Phase(AuthStore.Phase.QrEntry()))
+                            dispatch(Msg.Error(AuthStore.Error.Rpc(result.telegramError)))
+                            dispatch(Msg.Loading(false))
+                            return@launch
+                        }
+                        is Outcome.Ok -> when (val login = result.value) {
+                            is QrLogin.Code -> login
+                            QrLogin.AwaitingPassword -> {
+                                qrPasswordPending = true
+                                dispatch(Msg.Phase(AuthStore.Phase.PasswordEntry))
+                                dispatch(Msg.Loading(false))
+                                watchQrPassword()
+                                return@launch
+                            }
+                            is QrLogin.Authorized -> {
+                                dispatch(Msg.Phase(AuthStore.Phase.Authorized(login.session)))
+                                dispatch(Msg.Loading(false))
+                                publish(AuthStore.Label.Authorized(login.session))
+                                return@launch
+                            }
+                        }
+                    }
+                    dispatch(Msg.Phase(AuthStore.Phase.QrEntry(code)))
+                    dispatch(Msg.Loading(false))
+                    while (isActive && code.expires > nowSeconds() + 1) {
+                        delay(1000)
+                        if (code.expires <= nowSeconds() + 1) break
+                        when (val update = client.pollLoginToken()) {
+                            is Outcome.Ok -> if (update.value) break
+                            is Outcome.Err -> {
+                                dispatch(Msg.Phase(AuthStore.Phase.QrEntry()))
+                                dispatch(Msg.Error(AuthStore.Error.Rpc(update.telegramError)))
+                                return@launch
+                            }
+                        }
+                    }
+                    delay(100)
+                }
+            }
+        }
+
+        private fun watchQrPassword() {
+            qrJob?.cancel()
+            if (!qrScreenActive) return
+            qrJob = scope.launch {
+                var pollsSinceProbe = 0
+                while (isActive && qrPasswordPending && state().phase is AuthStore.Phase.PasswordEntry) {
+                    delay(1000)
+                    val result = client.pollLoginToken()
+                    if (result is Outcome.Err && result.telegramError.requiresReauth) {
+                        backToPhone()
+                        return@launch
+                    }
+                    // A quiet update stream does not verify that the pending authorization exists.
+                    if (result is Outcome.Ok && !result.value && ++pollsSinceProbe < 3) continue
+                    pollsSinceProbe = 0
+                    when (val probe = client.exportLoginToken()) {
+                        is Outcome.Ok -> when (val login = probe.value) {
+                            QrLogin.AwaitingPassword -> Unit
+                            is QrLogin.Code -> {
+                                backToPhone()
+                                return@launch
+                            }
+                            is QrLogin.Authorized -> {
+                                qrPasswordPending = false
+                                dispatch(Msg.Phase(AuthStore.Phase.Authorized(login.session)))
+                                dispatch(Msg.Loading(false))
+                                publish(AuthStore.Label.Authorized(login.session))
+                                return@launch
+                            }
+                        }
+                        is Outcome.Err -> if (probe.telegramError.requiresReauth) {
+                            backToPhone()
+                            return@launch
+                        }
+                    }
+                }
             }
         }
 
@@ -255,7 +395,7 @@ internal class AuthStoreFactory(
         }
 
         private fun submitPassword(rawPassword: String) {
-            if (state().phase !is AuthStore.Phase.PasswordEntry) return
+            if (state().phase !is AuthStore.Phase.PasswordEntry || state().loading) return
             // Do not trim: cloud passwords may contain leading/trailing spaces.
             val password = rawPassword.ifEmpty { state().password }
             if (password.isEmpty()) {
@@ -265,9 +405,11 @@ internal class AuthStoreFactory(
             dispatch(Msg.Password(password))
             dispatch(Msg.Loading(true))
             dispatch(Msg.Error(null))
-            scope.launch {
+            qrJob?.cancel()
+            passwordJob = scope.launch {
                 when (val result = client.checkPassword(password)) {
                     is Outcome.Ok -> {
+                        qrPasswordPending = false
                         dispatch(Msg.Phase(AuthStore.Phase.Authorized(result.value.session)))
                         publish(AuthStore.Label.Authorized(result.value.session))
                     }
@@ -276,6 +418,10 @@ internal class AuthStoreFactory(
                         when {
                             isPasswordInvalid(rpc) ->
                                 dispatch(Msg.Error(AuthStore.Error.Rpc(rpc)))
+                            qrPasswordPending && (rpc.requiresReauth || isStaleAuth(rpc)) -> {
+                                backToPhone()
+                                return@launch
+                            }
                             isStaleAuth(rpc) -> {
                                 dispatch(Msg.RestartAuth)
                                 val phone = state().phone.trim()
@@ -291,6 +437,9 @@ internal class AuthStoreFactory(
                     }
                 }
                 dispatch(Msg.Loading(false))
+                if (qrPasswordPending && state().phase is AuthStore.Phase.PasswordEntry) {
+                    watchQrPassword()
+                }
             }
         }
     }
@@ -308,6 +457,13 @@ internal class AuthStoreFactory(
             is Msg.Error -> copy(error = msg.value)
             is Msg.Phase -> copy(phase = msg.value, error = null)
             is Msg.UseTestDc -> copy(useTestDc = msg.value, error = null)
+            Msg.RestartQr -> copy(
+                phase = AuthStore.Phase.QrEntry(),
+                code = "",
+                password = "",
+                loading = false,
+                error = null,
+            )
             Msg.RestartAuth -> copy(
                 phase = AuthStore.Phase.PhoneEntry,
                 code = "",

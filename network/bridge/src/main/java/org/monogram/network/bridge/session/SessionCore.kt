@@ -1,5 +1,6 @@
 package org.monogram.network.bridge.session
 
+import kotlin.io.encoding.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +28,8 @@ import org.monogram.core.common.telegram.TelegramError
 import org.monogram.core.common.telegram.retryShortFlood
 import org.monogram.core.models.AuthSession
 import org.monogram.core.models.AuthState
+import org.monogram.core.models.DeviceSession
+import org.monogram.core.models.QrLogin
 import org.monogram.core.models.PeerId
 import org.monogram.mtproto.MtprotoNative
 import org.monogram.network.bridge.ClientInitInfo
@@ -34,6 +37,7 @@ import org.monogram.network.bridge.DurableUpdateSink
 import org.monogram.network.bridge.MtprotoTransportMode
 import org.monogram.network.bridge.MtprotoUpdate
 import org.monogram.network.bridge.ProxyConfig
+import uniffi.monogram_mtproto.QrLoginDto
 import uniffi.monogram_mtproto.MtprotoException
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -47,6 +51,76 @@ internal class SessionCore(
     internal val clock: MonotonicClock = NanoTimeClock,
     internal val initConnection: ClientInitInfo? = null,
 ) : SessionOps {
+    override suspend fun exportLoginToken(): Outcome<QrLogin> {
+        sessionDead = false
+        when (val connected = connect()) {
+            is Outcome.Err -> return connected
+            is Outcome.Ok -> Unit
+        }
+        return try {
+            Outcome.Ok(onNative { handle ->
+                when (val result = native.exportLoginToken(handle)) {
+                    is QrLoginDto.Token -> QrLogin.Code(
+                        "tg://login?token=" + Base64.UrlSafe
+                            .withPadding(Base64.PaddingOption.ABSENT).encode(result.token),
+                        result.expires,
+                    )
+                    is QrLoginDto.Authorized -> {
+                        maybeStartUpdates(handle)
+                        QrLogin.Authorized(
+                            AuthSession(PeerId(result.session.userId), result.session.dcId),
+                        )
+                    }
+                }
+            })
+        } catch (_: MtprotoException.PasswordRequired) {
+            Outcome.Ok(QrLogin.AwaitingPassword)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            fail(e, "auth.exportLoginToken failed")
+        }
+    }
+
+    override suspend fun pollLoginToken(): Outcome<Boolean> =
+        try {
+            Outcome.Ok(onNative { handle -> native.pollLoginToken(handle) })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Pending QR authorization belongs to AuthStore, not the signed-in account.
+            fail(e, "auth.pollLoginToken failed", degradeHome = false)
+        }
+
+    override suspend fun getDeviceSessions(): Outcome<List<DeviceSession>> {
+        when (val connected = ensureConnected()) {
+            is Outcome.Err -> return connected
+            is Outcome.Ok -> Unit
+        }
+        return rpc("getDeviceSessions failed") { handle ->
+            native.getDeviceSessions(handle).map { it.toModel() }
+        }
+    }
+
+    override suspend fun acceptLoginToken(link: String): Outcome<DeviceSession> {
+        val token = decodeLoginToken(link) ?: return Outcome.Err("AUTH_TOKEN_INVALID")
+        when (val connected = ensureConnected()) {
+            is Outcome.Err -> return connected
+            is Outcome.Ok -> Unit
+        }
+        return rpcWrite("acceptLoginToken failed") { handle ->
+            native.acceptLoginToken(handle, token).toModel()
+        }
+    }
+
+    override suspend fun revokeDeviceSession(hash: Long): Outcome<Unit> {
+        when (val connected = ensureConnected()) {
+            is Outcome.Err -> return connected
+            is Outcome.Ok -> Unit
+        }
+        return rpcWrite("revokeDeviceSession failed") { handle -> native.revokeDeviceSession(handle, hash) }
+    }
+
     @Volatile
     internal var handle: Long = 0L
 

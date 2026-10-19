@@ -9,6 +9,151 @@ use crate::{AuthCodeSent, AuthSignedIn, MtprotoError};
 
 use super::*;
 
+pub(super) fn login_key_error(state: &ClientState, error: MtprotoError) -> MtprotoError {
+    // Missing login keys require a fresh QR. PFS key failures must stay on the
+    // temporary-key recovery path instead of logging out the permanent session.
+    if state.permanent.is_none()
+        && matches!(&error, MtprotoError::Message(message) if message == "MTProto transport error -404")
+    {
+        MtprotoError::Message("RPC 401: AUTH_KEY_INVALID".into())
+    } else {
+        error
+    }
+}
+
+pub fn export_login_token(handle: u64) -> Result<crate::QrLoginDto, MtprotoError> {
+    use tellers_mtproto::latest::api::{
+        AuthExportLoginTokenRequest, AuthImportLoginTokenRequest, AuthLoginToken, Vector,
+        VectorConstructor,
+    };
+    let result = with_client_mut(handle, |state| {
+        if let Some(user_id) = state.user_id {
+            reject_if_dead(state)?;
+            return Ok(crate::QrLoginDto::Authorized {
+                session: AuthSignedIn {
+                    user_id,
+                    dc_id: state.snapshot.dc_id,
+                },
+            });
+        }
+        if state.session_dead && state.user_id.is_none() {
+            if state.session_dead_reason.as_deref() == Some("AUTH_KEY_UNREGISTERED") {
+                state.session_dead = false;
+                state.session_dead_reason = None;
+            } else {
+                recreate_mtproto_session(state)?;
+            }
+        }
+        let result = (|| {
+            let mut token: AuthLoginToken = call_with_migrate(state, |state| {
+                crate::api_invoke::invoke_api(
+                    &mut state.snapshot,
+                    state.api_id,
+                    AuthExportLoginTokenRequest {
+                        api_id: state.api_id,
+                        api_hash: state.api_hash.clone(),
+                        except_ids: Box::new(Vector::Vector(VectorConstructor {
+                            field_0: 0,
+                            field_1: vec![],
+                        })),
+                    },
+                )
+            })?;
+            for _ in 0..3 {
+                match token {
+                    AuthLoginToken::AuthLoginToken(token) => {
+                        return Ok(crate::QrLoginDto::Token {
+                            token: token.token,
+                            expires: token.expires,
+                        });
+                    }
+                    AuthLoginToken::AuthLoginTokenSuccess(success) => {
+                        let signed = auth_rpc::authorization_to_signed(
+                            *success.authorization,
+                            state.snapshot.dc_id,
+                        )?;
+                        complete_sign_in(state, signed.user_id)?;
+                        return Ok(crate::QrLoginDto::Authorized { session: signed });
+                    }
+                    AuthLoginToken::AuthLoginTokenMigrateTo(migrate) => {
+                        if !(1..=5).contains(&migrate.dc_id) {
+                            return Err(MtprotoError::Message("invalid login datacenter".into()));
+                        }
+                        ensure_ready_after_migrate(
+                            state,
+                            MtprotoError::Message(format!("MIGRATE_{}", migrate.dc_id)),
+                        )?;
+                        token = crate::api_invoke::invoke_api(
+                            &mut state.snapshot,
+                            state.api_id,
+                            AuthImportLoginTokenRequest {
+                                token: migrate.token,
+                            },
+                        )?;
+                    }
+                    _ => return Err(MtprotoError::Message("unexpected login token".into())),
+                }
+            }
+            Err(MtprotoError::Message(
+                "too many login datacenter migrations".into(),
+            ))
+        })();
+        if matches!(result, Err(MtprotoError::PasswordRequired)) {
+            persist(state)?;
+        }
+        result.map_err(|error| login_key_error(state, error))
+    })?;
+    if matches!(result, crate::QrLoginDto::Authorized { .. }) {
+        drop_updates_transport(handle);
+    }
+    Ok(result)
+}
+
+pub fn poll_login_token(handle: u64) -> Result<bool, MtprotoError> {
+    poll_login_token_with(handle, crate::rpc::receive_updates)
+}
+
+pub(super) fn poll_login_token_with(
+    handle: u64,
+    receive: impl FnOnce(&mut Snapshot) -> Result<Vec<Vec<u8>>, MtprotoError>,
+) -> Result<bool, MtprotoError> {
+    with_client_mut(handle, |state| {
+        reject_if_dead(state)?;
+        let packets =
+            receive(&mut state.snapshot).map_err(|error| login_key_error(state, error))?;
+        Ok(packets
+            .iter()
+            .any(|packet| auth_rpc::has_login_token_update(packet)))
+    })
+}
+
+pub fn get_device_sessions(handle: u64) -> Result<Vec<crate::DeviceSessionDto>, MtprotoError> {
+    with_client_mut(handle, |state| {
+        call_with_migrate(state, |state| {
+            auth_rpc::get_device_sessions(&mut state.snapshot, state.api_id)
+        })
+    })
+}
+
+pub fn accept_login_token(
+    handle: u64,
+    token: Vec<u8>,
+) -> Result<crate::DeviceSessionDto, MtprotoError> {
+    with_client_mut(handle, |state| {
+        call_with_migrate(state, |state| {
+            auth_rpc::accept_login_token(&mut state.snapshot, state.api_id, &token)
+        })
+    })
+}
+
+pub fn revoke_device_session(handle: u64, hash: i64) -> Result<(), MtprotoError> {
+    with_client_mut(handle, |state| {
+        call_with_migrate(state, |state| {
+            auth_rpc::revoke_device_session(&mut state.snapshot, state.api_id, hash)
+        })
+    })
+}
+
 pub fn connect(handle: u64) -> Result<(), MtprotoError> {
     connect_with_binding(handle, crate::auth::bind_temp::negotiate_bound_temp)
 }

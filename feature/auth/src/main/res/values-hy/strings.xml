@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">Սեղմատախտակը դատարկ է</string>
     <string name="auth_paste_code">Տեղադրել կոդը</string>
     <string name="auth_connection">Միացման կարգավորումներ</string>
+    <string name="auth_qr_login">Մուտք գործել QR կոդով</string>
+    <string name="auth_qr_instructions">Բացեք Telegram-ն այլ սարքում։ Կարգավորումներում բացեք Սարքեր բաժինը, սեղմեք Կապել սարք և սկանավորեք այս կոդը։</string>
+    <string name="auth_qr_code">Telegram մուտք գործելու QR կոդ</string>
+    <string name="auth_qr_retry">Կրկին փորձել</string>
+    <string name="auth_qr_use_phone">Մուտք գործել հեռախոսահամարով</string>
 </resources>

@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">剪贴板为空</string>
     <string name="auth_paste_code">粘贴验证码</string>
     <string name="auth_connection">连接设置</string>
+    <string name="auth_qr_login">通过二维码登录</string>
+    <string name="auth_qr_instructions">在另一台设备上打开 Telegram。在设置中打开「设备」，点击「关联设备」，然后扫描此二维码。</string>
+    <string name="auth_qr_code">Telegram 登录二维码</string>
+    <string name="auth_qr_retry">重试</string>
+    <string name="auth_qr_use_phone">通过手机号码登录</string>
 </resources>

@@ -9,6 +9,12 @@ sealed interface SettingsPage {
     data object Home : SettingsPage
 
     @Serializable
+    data object Devices : SettingsPage
+
+    @Serializable
+    data object DeviceScanner : SettingsPage
+
+    @Serializable
     data object Proxy : SettingsPage
 
     @Serializable

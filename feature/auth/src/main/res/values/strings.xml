@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">Clipboard is empty</string>
     <string name="auth_paste_code">Paste code</string>
     <string name="auth_connection">Connection settings</string>
+    <string name="auth_qr_login">Log in with QR Code</string>
+    <string name="auth_qr_instructions">Open Telegram on your other device. Open Devices in Settings, tap Link Desktop Device, and scan this code.</string>
+    <string name="auth_qr_code">Telegram login QR code</string>
+    <string name="auth_qr_retry">Try Again</string>
+    <string name="auth_qr_use_phone">Log in with Phone Number</string>
 </resources>

@@ -408,4 +408,25 @@
     <string name="settings_proxy_test_named">Testar %1$s</string>
     <string name="settings_proxy_edit_named">Editar %1$s</string>
     <string name="settings_notifications_chat_mentions">Menções e respostas</string>
+    <string name="settings_devices">Dispositivos</string>
+    <string name="settings_devices_sub">Gerenciar dispositivos conectados</string>
+    <string name="settings_devices_link">Conectar dispositivo</string>
+    <string name="settings_devices_scan_hint">Leia o código QR do Telegram Desktop ou Web para entrar.</string>
+    <string name="settings_devices_invalid">Este não é um código QR válido para entrar no Telegram.</string>
+    <string name="settings_devices_expired">Este código QR expirou. Leia o novo código.</string>
+    <string name="settings_devices_already_accepted">Este código QR já foi usado. Gere um novo código.</string>
+    <string name="settings_devices_already_logged_in">Esta conta já está conectada nesse dispositivo.</string>
+    <string name="settings_devices_linked">Login realizado com sucesso</string>
+    <string name="settings_devices_terminate_action">Encerrar</string>
+    <string name="settings_devices_refresh">Atualizar</string>
+    <string name="settings_devices_empty">Nenhum dispositivo conectado para exibir.</string>
+    <string name="settings_devices_current">Este dispositivo</string>
+    <string name="settings_devices_password_pending">Aguardando a senha de verificação em duas etapas no novo dispositivo</string>
+    <string name="settings_devices_last_active">Última atividade: %1$s</string>
+    <string name="settings_devices_terminate">Encerrar sessão</string>
+    <string name="settings_devices_terminate_confirm">Sair do Telegram neste dispositivo?</string>
+    <string name="settings_devices_camera_unavailable">A câmera está indisponível. Verifique se outro aplicativo está usando a câmera.</string>
+    <string name="settings_devices_camera_permission">Permita o acesso à câmera nas configurações do aplicativo para ler códigos QR.</string>
+    <string name="settings_devices_open_settings">Abrir configurações do aplicativo</string>
+    <string name="settings_devices_scan_title">Ler código QR</string>
 </resources>

@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">El portapapeles está vacío</string>
     <string name="auth_paste_code">Pegar código</string>
     <string name="auth_connection">Ajustes de conexión</string>
+    <string name="auth_qr_login">Iniciar sesión con código QR</string>
+    <string name="auth_qr_instructions">Abre Telegram en tu otro dispositivo. En Ajustes, abre Dispositivos, toca Vincular dispositivo y escanea este código.</string>
+    <string name="auth_qr_code">Código QR para iniciar sesión en Telegram</string>
+    <string name="auth_qr_retry">Reintentar</string>
+    <string name="auth_qr_use_phone">Iniciar sesión con número de teléfono</string>
 </resources>

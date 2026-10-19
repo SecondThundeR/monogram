@@ -31,6 +31,13 @@ internal fun AuthPhoneStep(
     onIntent: (AuthStore.Intent) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        androidx.compose.material3.TextButton(
+            onClick = { onIntent(AuthStore.Intent.StartQrLogin) },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.auth_qr_login))
+        }
         PhoneInput(
             value = state.phone,
             onValueChange = { onIntent(AuthStore.Intent.PhoneChanged(it)) },

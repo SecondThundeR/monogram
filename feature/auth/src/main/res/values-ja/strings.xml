@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">クリップボードが空です</string>
     <string name="auth_paste_code">コードを貼り付け</string>
     <string name="auth_connection">接続設定</string>
+    <string name="auth_qr_login">QRコードでログイン</string>
+    <string name="auth_qr_instructions">別のデバイスでTelegramを開いてください。設定で「デバイス」を開き、「デバイスを接続」をタップして、このコードをスキャンしてください。</string>
+    <string name="auth_qr_code">Telegramログイン用QRコード</string>
+    <string name="auth_qr_retry">再試行</string>
+    <string name="auth_qr_use_phone">電話番号でログイン</string>
 </resources>

@@ -408,4 +408,25 @@
     <string name="settings_proxy_test_named">Otestovať %1$s</string>
     <string name="settings_proxy_edit_named">Upraviť %1$s</string>
     <string name="settings_notifications_chat_mentions">Zmienky a odpovede</string>
+    <string name="settings_devices">Zariadenia</string>
+    <string name="settings_devices_sub">Spravovať prepojené zariadenia</string>
+    <string name="settings_devices_link">Prepojiť zariadenie</string>
+    <string name="settings_devices_scan_hint">Prihláste sa naskenovaním QR kódu v Telegrame Desktop alebo Web.</string>
+    <string name="settings_devices_invalid">Toto nie je platný QR kód na prihlásenie do Telegramu.</string>
+    <string name="settings_devices_expired">Platnosť tohto QR kódu vypršala. Naskenujte nový kód.</string>
+    <string name="settings_devices_already_accepted">Tento QR kód už bol použitý. Vygenerujte nový kód.</string>
+    <string name="settings_devices_already_logged_in">Tento účet je už na danom zariadení prihlásený.</string>
+    <string name="settings_devices_linked">Prihlásenie bolo úspešné</string>
+    <string name="settings_devices_terminate_action">Ukončiť</string>
+    <string name="settings_devices_refresh">Obnoviť</string>
+    <string name="settings_devices_empty">Žiadne prepojené zariadenia.</string>
+    <string name="settings_devices_current">Toto zariadenie</string>
+    <string name="settings_devices_password_pending">Čaká sa na heslo dvojstupňového overenia na novom zariadení</string>
+    <string name="settings_devices_last_active">Posledná aktivita: %1$s</string>
+    <string name="settings_devices_terminate">Ukončiť reláciu</string>
+    <string name="settings_devices_terminate_confirm">Odhlásiť sa z Telegramu na tomto zariadení?</string>
+    <string name="settings_devices_camera_unavailable">Kamera nie je dostupná. Skontrolujte, či ju nepoužíva iná aplikácia.</string>
+    <string name="settings_devices_camera_permission">Ak chcete skenovať QR kódy, povoľte prístup ku kamere v nastaveniach aplikácie.</string>
+    <string name="settings_devices_open_settings">Otvoriť nastavenia aplikácie</string>
+    <string name="settings_devices_scan_title">Skenovať QR kód</string>
 </resources>

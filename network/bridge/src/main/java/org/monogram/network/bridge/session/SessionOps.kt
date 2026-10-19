@@ -2,12 +2,25 @@ package org.monogram.network.bridge.session
 
 import org.monogram.core.common.Outcome
 import org.monogram.core.models.AuthState
+import org.monogram.core.models.DeviceSession
+import org.monogram.core.models.QrLogin
 import org.monogram.network.bridge.MtprotoTransportMode
 import org.monogram.network.bridge.ProxyConfig
 
 enum class ProxyConnectionStatus { Disabled, Disconnected, Connecting, Connected, Failed }
 
 interface SessionOps {
+    suspend fun exportLoginToken(): Outcome<QrLogin> = Outcome.Err("unsupported")
+    suspend fun pollLoginToken(): Outcome<Boolean> = Outcome.Err("unsupported")
+
+    suspend fun getDeviceSessions(): Outcome<List<DeviceSession>> =
+        Outcome.Err("unsupported")
+
+    suspend fun acceptLoginToken(link: String): Outcome<DeviceSession> =
+        Outcome.Err("unsupported")
+
+    suspend fun revokeDeviceSession(hash: Long): Outcome<Unit> = Outcome.Err("unsupported")
+
     fun proxyConnectionStatus(): ProxyConnectionStatus = ProxyConnectionStatus.Disabled
     fun setTransportMode(mode: MtprotoTransportMode): Outcome<Unit> = Outcome.Ok(Unit)
     fun configureProxy(config: ProxyConfig): Outcome<Unit> = Outcome.Ok(Unit)

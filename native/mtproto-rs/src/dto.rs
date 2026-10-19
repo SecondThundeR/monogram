@@ -12,6 +12,28 @@ pub struct AuthSignedIn {
     pub dc_id: i32,
 }
 
+#[derive(Clone, uniffi::Enum)]
+pub enum QrLoginDto {
+    Token { token: Vec<u8>, expires: i32 },
+    Authorized { session: AuthSignedIn },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct DeviceSessionDto {
+    pub hash: i64,
+    pub current: bool,
+    pub password_pending: bool,
+    pub device_model: String,
+    pub platform: String,
+    pub system_version: String,
+    pub app_name: String,
+    pub app_version: String,
+    pub date_active: i32,
+    pub ip: String,
+    pub country: String,
+    pub region: String,
+}
+
 /// Values sent in `initConnection` on a fresh transport.
 /// https://core.telegram.org/api/invoking
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]

@@ -408,4 +408,25 @@
     <string name="settings_proxy_test_named">Перевірити %1$s</string>
     <string name="settings_proxy_edit_named">Змінити %1$s</string>
     <string name="settings_notifications_chat_mentions">Згадки й відповіді</string>
+    <string name="settings_devices">Пристрої</string>
+    <string name="settings_devices_sub">Керування підключеними пристроями</string>
+    <string name="settings_devices_link">Підключити пристрій</string>
+    <string name="settings_devices_scan_hint">Відскануйте QR-код у Telegram Desktop або Web для входу.</string>
+    <string name="settings_devices_invalid">Це недійсний QR-код для входу в Telegram.</string>
+    <string name="settings_devices_expired">Термін дії QR-коду минув. Відскануйте новий код.</string>
+    <string name="settings_devices_already_accepted">Цей QR-код уже використано. Створіть новий код.</string>
+    <string name="settings_devices_already_logged_in">На цьому пристрої вже виконано вхід у цей обліковий запис.</string>
+    <string name="settings_devices_linked">Вхід виконано</string>
+    <string name="settings_devices_terminate_action">Завершити</string>
+    <string name="settings_devices_refresh">Оновити</string>
+    <string name="settings_devices_empty">Немає підключених пристроїв.</string>
+    <string name="settings_devices_current">Цей пристрій</string>
+    <string name="settings_devices_password_pending">Очікування пароля двоетапної перевірки на новому пристрої</string>
+    <string name="settings_devices_last_active">Остання активність: %1$s</string>
+    <string name="settings_devices_terminate">Завершити сеанс</string>
+    <string name="settings_devices_terminate_confirm">Вийти з Telegram на цьому пристрої?</string>
+    <string name="settings_devices_camera_unavailable">Камера недоступна. Перевірте, чи не використовує її інша програма.</string>
+    <string name="settings_devices_camera_permission">Дозвольте доступ до камери в налаштуваннях програми для сканування QR-кодів.</string>
+    <string name="settings_devices_open_settings">Відкрити налаштування програми</string>
+    <string name="settings_devices_scan_title">Сканувати QR-код</string>
 </resources>

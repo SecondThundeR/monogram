@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">A área de transferência está vazia</string>
     <string name="auth_paste_code">Colar código</string>
     <string name="auth_connection">Configurações de conexão</string>
+    <string name="auth_qr_login">Entrar com código QR</string>
+    <string name="auth_qr_instructions">Abra o Telegram no outro dispositivo. Em Configurações, abra Dispositivos, toque em Conectar dispositivo e leia este código.</string>
+    <string name="auth_qr_code">Código QR para entrar no Telegram</string>
+    <string name="auth_qr_retry">Tentar novamente</string>
+    <string name="auth_qr_use_phone">Entrar com número de telefone</string>
 </resources>

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.Help
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Notifications
@@ -117,6 +118,17 @@ internal fun LazyListScope.homeItems(
             iconColor = MaterialTheme.colorScheme.primary,
             position = ItemPosition.MIDDLE,
             onClick = { onOpen(SettingsPage.Proxy) },
+            trailingContent = { Chevron() },
+        )
+    }
+    item {
+        SettingsTile(
+            icon = Icons.Outlined.Devices,
+            title = stringResource(R.string.settings_devices),
+            subtitle = stringResource(R.string.settings_devices_sub),
+            iconColor = MaterialTheme.colorScheme.secondary,
+            position = ItemPosition.MIDDLE,
+            onClick = { onOpen(SettingsPage.Devices) },
             trailingContent = { Chevron() },
         )
     }

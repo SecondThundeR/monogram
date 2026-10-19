@@ -44,4 +44,9 @@
     <string name="auth_paste_empty">Schránka je prázdna</string>
     <string name="auth_paste_code">Vložiť kód</string>
     <string name="auth_connection">Nastavenia pripojenia</string>
+    <string name="auth_qr_login">Prihlásiť sa pomocou QR kódu</string>
+    <string name="auth_qr_instructions">Otvorte Telegram na inom zariadení. V Nastaveniach otvorte Zariadenia, klepnite na Prepojiť zariadenie a naskenujte tento kód.</string>
+    <string name="auth_qr_code">QR kód na prihlásenie do Telegramu</string>
+    <string name="auth_qr_retry">Skúsiť znova</string>
+    <string name="auth_qr_use_phone">Prihlásiť sa telefónnym číslom</string>
 </resources>
