@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDefaults
@@ -41,6 +45,7 @@ import org.monogram.core.ui.components.AppSyncStatus
 import org.monogram.core.ui.components.SettingsCard
 import org.monogram.core.ui.components.SettingsCardRow
 import org.monogram.core.ui.components.SettingsTile
+import org.monogram.core.ui.components.listItemMotion
 import org.monogram.core.ui.loading.MonogramLinearProgress
 import org.monogram.feature.settings.DevicesStore
 import org.monogram.feature.settings.R
@@ -140,7 +145,7 @@ internal fun DevicesSettingsContent(
             if (state.sessions.isEmpty() && !state.loading && state.error == null)
                 item { Text(stringResource(R.string.settings_devices_empty)) }
             items(state.sessions, key = { it.hash }) { session ->
-                SettingsCard {
+                SettingsCard(modifier = listItemMotion()) {
                     SettingsCardRow(
                         icon = Icons.Outlined.Devices,
                         iconColor = MaterialTheme.colorScheme.secondary,
@@ -172,18 +177,27 @@ internal fun DevicesSettingsContent(
                                 )
                                 .filter { it.isNotBlank() }
                                 .joinToString("\n"),
+                        trailingContent =
+                            if (session.current) null
+                            else {
+                                {
+                                    IconButton(
+                                        onClick = { revokeHash = session.hash },
+                                        enabled = !state.loading,
+                                        colors =
+                                            IconButtonDefaults.iconButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error
+                                            ),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.Logout,
+                                            contentDescription =
+                                                stringResource(R.string.settings_devices_terminate),
+                                        )
+                                    }
+                                }
+                            },
                     )
-                    if (!session.current) {
-                        TextButton(
-                            onClick = { revokeHash = session.hash },
-                            enabled = !state.loading,
-                        ) {
-                            Text(
-                                stringResource(R.string.settings_devices_terminate),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
                 }
             }
         }
